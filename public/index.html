@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Dabba — Calorie Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-dabba" aria-hidden="true">🍱</span>
+    <h1 class="brand-title">Dabba</h1>
+  </div>
+  <div id="headerActions" class="header-actions hidden">
+    <button id="profileBtn" class="icon-btn" aria-label="Profile & macro targets" title="Profile & macro targets">👤</button>
+    <button id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
+    <button id="signOutBtn" class="icon-btn" aria-label="Sign out" title="Sign out">⎋</button>
+  </div>
+</header>
+
+<!-- Auth gate — shown until a Supabase session exists, then hidden -->
+<div id="authOverlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="brand-dabba" aria-hidden="true">🍱</span>
+      <h1 class="brand-title">Dabba</h1>
+    </div>
+    <p class="auth-subtitle">Sign in to sync your log across devices.</p>
+
+    <form id="authForm" class="auth-form">
+      <label class="field-label">Email
+        <input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com" />
+      </label>
+      <label class="field-label">Password
+        <input id="authPassword" type="password" autocomplete="current-password" required minlength="6" placeholder="At least 6 characters" />
+      </label>
+      <button type="submit" id="authSubmit" class="primary-btn">Sign in</button>
+    </form>
+
+    <p id="authMessage" class="auth-message hidden"></p>
+
+    <button type="button" id="authToggleMode" class="secondary-btn">Need an account? Sign up</button>
+  </div>
+</div>
+
+<!-- Shown after login while a signup is waiting on admin approval -->
+<div id="pendingOverlay" class="auth-overlay hidden">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="brand-dabba" aria-hidden="true">🍱</span>
+      <h1 class="brand-title">Dabba</h1>
+    </div>
+    <p class="auth-subtitle">Your account is created — an admin just needs to approve it before you can start logging.</p>
+    <button type="button" id="pendingSignOutBtn" class="secondary-btn">Sign out</button>
+  </div>
+</div>
+
+<!-- Admin approval panel: password-gated, lists pending sign-ups -->
+<div id="adminOverlay" class="sheet-overlay hidden">
+  <div class="sheet settings-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="section-title">Admin — pending sign-ups</h2>
+
+    <div id="adminLoginPanel">
+      <label class="field-label">Admin password
+        <input id="adminPasswordInput" type="password" placeholder="Admin password" />
+      </label>
+      <button id="adminLoginBtn" class="primary-btn">Unlock</button>
+      <p id="adminMessage" class="auth-message hidden"></p>
+    </div>
+
+    <div id="adminPendingPanel" class="hidden">
+      <ul id="adminPendingList" class="admin-pending-list"></ul>
+      <p id="adminEmptyState" class="empty-state hidden">No pending sign-ups.</p>
+    </div>
+  </div>
+</div>
+
+<main id="appMain" class="app-main hidden">
+
+  <nav class="date-nav">
+    <button id="prevDay" class="icon-btn" aria-label="Previous day">◀</button>
+    <div class="date-label">
+      <span id="dateRelative">Today</span>
+      <span id="dateFull" class="date-full"></span>
+    </div>
+    <button id="nextDay" class="icon-btn" aria-label="Next day">▶</button>
+  </nav>
+
+  <section class="gauge-card">
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 200 200">
+        <defs>
+          <linearGradient id="ringGradientNormal" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#9bc296" />
+            <stop offset="55%" stop-color="#7fa07a" />
+            <stop offset="100%" stop-color="#e3a530" />
+          </linearGradient>
+          <linearGradient id="ringGradientOver" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f5c04e" />
+            <stop offset="55%" stop-color="#e08a5c" />
+            <stop offset="100%" stop-color="#c1613a" />
+          </linearGradient>
+          <linearGradient id="ringTrackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2f4d56" />
+            <stop offset="100%" stop-color="#223841" />
+          </linearGradient>
+        </defs>
+        <circle class="ring-track" cx="100" cy="100" r="88" />
+        <circle id="ringProgress" class="ring-progress" cx="100" cy="100" r="88" stroke="url(#ringGradientNormal)" />
+      </svg>
+      <div class="ring-center">
+        <span id="totalCalories" class="ring-number">0</span>
+        <span class="ring-unit">kcal</span>
+        <span id="ringStatus" class="ring-status">of 2000 goal</span>
+      </div>
+    </div>
+    <div class="macro-row">
+      <div class="macro-pill">
+        <span class="macro-label">Protein</span>
+        <span id="macroProtein" class="macro-value">0g</span>
+      </div>
+      <div class="macro-pill">
+        <span class="macro-label">Carbs</span>
+        <span id="macroCarbs" class="macro-value">0g</span>
+      </div>
+      <div class="macro-pill">
+        <span class="macro-label">Fat</span>
+        <span id="macroFat" class="macro-value">0g</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="macroTargetsSection" class="targets-card hidden">
+    <h2 class="section-title">Macro targets</h2>
+    <div id="rangeBars" class="range-bars"></div>
+  </section>
+  <p id="targetsPrompt" class="targets-prompt hidden">Set up your profile to see macro targets.</p>
+
+  <section class="entries-section">
+    <h2 class="section-title">Today's log</h2>
+    <ul id="entryList" class="entry-list"></ul>
+    <p id="emptyState" class="empty-state">No food logged yet. Tap + to add your first meal.</p>
+  </section>
+
+</main>
+
+<button id="addFoodBtn" class="fab hidden" aria-label="Add food">+</button>
+
+<!-- Add Food Bottom Sheet -->
+<div id="sheetOverlay" class="sheet-overlay hidden">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-tabs">
+      <button class="tab-btn active" data-tab="search">Search DB</button>
+      <button class="tab-btn" data-tab="text">Describe</button>
+      <!-- Photo tab temporarily disabled — Groq vision model was hitting free-tier rate limits.
+           Re-enable by adding back: <button class="tab-btn" data-tab="photo">Photo</button> -->
+    </div>
+
+    <div class="sheet-body">
+
+      <!-- Search DB -->
+      <div class="tab-panel active" data-panel="search">
+        <input id="searchInput" type="text" placeholder="Search e.g. roti, dosa, biryani..." class="search-input" />
+        <ul id="searchResults" class="search-results"></ul>
+      </div>
+
+      <!-- Photo -->
+      <div class="tab-panel" data-panel="photo">
+        <div id="dropZone" class="drop-zone">
+          <p>Drag a photo here, or tap to choose</p>
+          <input id="photoInput" type="file" accept="image/*" capture="environment" hidden />
+        </div>
+        <img id="photoPreview" class="photo-preview hidden" alt="Meal preview" />
+        <div id="photoLoading" class="loading-state hidden">
+          <div class="spinner"></div>
+          <p>Estimating nutrition…</p>
+        </div>
+        <div id="photoConfirm" class="confirm-card hidden"></div>
+      </div>
+
+      <!-- Describe -->
+      <div class="tab-panel" data-panel="text">
+        <form id="describeForm" class="describe-form">
+          <label class="field-label">Food type
+            <select id="foodType">
+              <option value="">Select a type…</option>
+              <option value="Curry/gravy">Curry / gravy</option>
+              <option value="Stir-fry/sabzi">Stir-fry / sabzi</option>
+              <option value="Fried">Fried</option>
+              <option value="Grilled/tandoori">Grilled / tandoori</option>
+              <option value="Steamed/boiled">Steamed / boiled</option>
+              <option value="Soup/stew">Soup / stew</option>
+              <option value="Rice dish">Rice dish</option>
+              <option value="Bread-based">Bread-based</option>
+              <option value="Salad/raw">Salad / raw</option>
+              <option value="Dessert">Dessert</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+
+          <label class="field-label">Main ingredient
+            <select id="mainIngredient">
+              <option value="">Select an ingredient…</option>
+              <option value="Chicken">Chicken</option>
+              <option value="Mutton/lamb">Mutton / lamb</option>
+              <option value="Beef">Beef</option>
+              <option value="Pork">Pork</option>
+              <option value="Fish/seafood">Fish / seafood</option>
+              <option value="Egg">Egg</option>
+              <option value="Paneer">Paneer</option>
+              <option value="Tofu">Tofu</option>
+              <option value="Lentils/dal">Lentils / dal</option>
+              <option value="Vegetables (mixed)">Vegetables (mixed)</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label id="mainIngredientOtherWrap" class="field-label hidden">Specify ingredient
+            <input id="mainIngredientOther" type="text" placeholder="e.g. jackfruit" />
+          </label>
+
+          <div class="qty-row">
+            <label class="field-label">Quantity before cooking
+              <input id="rawQty" type="number" min="0" step="0.1" placeholder="e.g. 250" />
+            </label>
+            <label class="field-label qty-unit">Unit
+              <select id="rawQtyUnit">
+                <option value="g">grams</option>
+                <option value="kg">kg</option>
+                <option value="pieces">pieces</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="qty-row">
+            <label class="field-label">Oil/ghee added
+              <input id="oilQty" type="number" min="0" step="0.1" placeholder="e.g. 2" />
+            </label>
+            <label class="field-label qty-unit">Unit
+              <select id="oilQtyUnit">
+                <option value="tsp">tsp</option>
+                <option value="tbsp">tbsp</option>
+                <option value="ml">ml</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field-label">Other ingredients added
+            <input id="otherIngredients" type="text" placeholder="e.g. onion, tomato, garlic, spices" />
+          </label>
+
+          <label class="field-label">Additional info (optional)
+            <textarea id="additionalInfo" class="text-input text-input-sm" placeholder="Anything else worth noting — cream, coconut milk, sugar, etc."></textarea>
+          </label>
+
+          <button type="submit" id="textSubmit" class="primary-btn">Estimate</button>
+        </form>
+        <div id="textLoading" class="loading-state hidden">
+          <div class="spinner"></div>
+          <p>Estimating nutrition…</p>
+        </div>
+        <div id="textConfirm" class="confirm-card hidden"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsOverlay" class="sheet-overlay hidden">
+  <div class="sheet settings-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="section-title">Settings</h2>
+    <label class="field-label">Daily calorie goal
+      <input id="goalInput" type="number" min="1" />
+    </label>
+    <button id="goalSave" class="primary-btn">Save</button>
+  </div>
+</div>
+
+<!-- Profile & Macro Targets Modal -->
+<div id="profileOverlay" class="sheet-overlay hidden">
+  <div class="sheet settings-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="section-title">Profile &amp; macro targets</h2>
+
+    <label class="field-label">Weight (kg)
+      <input id="profileWeight" type="number" min="20" max="300" step="0.1" />
+    </label>
+    <label class="field-label">Height (cm)
+      <input id="profileHeight" type="number" min="100" max="250" step="0.1" />
+    </label>
+    <label class="field-label">Age
+      <input id="profileAge" type="number" min="10" max="100" />
+    </label>
+
+    <label class="field-label">Gender</label>
+    <div class="segmented" id="genderSegmented">
+      <button type="button" class="segmented-btn active" data-value="male">Male</button>
+      <button type="button" class="segmented-btn" data-value="female">Female</button>
+    </div>
+
+    <label class="field-label">Activity level</label>
+    <div class="segmented segmented-col" id="activitySegmented">
+      <button type="button" class="segmented-btn active" data-value="sedentary">
+        Sedentary <span class="segmented-hint">Little to no exercise</span>
+      </button>
+      <button type="button" class="segmented-btn" data-value="light">
+        Light <span class="segmented-hint">Exercise 1-3 days/week</span>
+      </button>
+      <button type="button" class="segmented-btn" data-value="moderate">
+        Moderate <span class="segmented-hint">Exercise 3-5 days/week</span>
+      </button>
+      <button type="button" class="segmented-btn" data-value="active">
+        Active <span class="segmented-hint">Exercise 6-7 days/week</span>
+      </button>
+      <button type="button" class="segmented-btn" data-value="very_active">
+        Very active <span class="segmented-hint">Physical job or 2x/day training</span>
+      </button>
+    </div>
+
+    <label class="field-label">Goal</label>
+    <div class="segmented" id="goalTypeSegmented">
+      <button type="button" class="segmented-btn" data-value="lose">Lose weight</button>
+      <button type="button" class="segmented-btn active" data-value="maintain">Maintain</button>
+      <button type="button" class="segmented-btn" data-value="gain">Gain weight</button>
+    </div>
+
+    <label id="goalRateWrap" class="field-label hidden">Target pace (kg/week)
+      <input id="goalRate" type="number" min="0.1" max="1.5" step="0.05" value="0.5" placeholder="e.g. 0.5" />
+      <span class="field-hint">Type any pace between 0.1 and 1.5 kg/week</span>
+    </label>
+
+    <label class="field-label">Goal details (optional)
+      <input id="goalDescription" type="text" placeholder="e.g. lean bulk, muscle gain, recomp, aggressive cut" />
+      <span class="field-hint">Type a specific goal and your Groq coach will tailor the calorie/macro targets to it</span>
+    </label>
+
+    <button id="profileSave" class="primary-btn">Save &amp; calculate</button>
+
+    <div id="profileResults" class="confirm-card hidden"></div>
+    <div id="profileInsights" class="insights-card hidden"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- Always reachable regardless of login state, so it isn't stranded behind the auth screen once signed in -->
+<button type="button" id="adminLinkBtn" class="admin-corner-link">Admin</button>
+
+<script src="foods.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
