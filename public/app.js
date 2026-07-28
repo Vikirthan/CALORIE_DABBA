@@ -1237,6 +1237,12 @@ function initPWA() {
 async function main() {
   initPWA();
   const config = await api('/api/config');
+  if (config.version && $('appVersionText')) {
+    $('appVersionText').textContent = config.version;
+  }
+  if (config.lastPushed && $('appLastPushedText')) {
+    $('appLastPushedText').textContent = `Pushed: ${config.lastPushed}`;
+  }
   supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
   setAuthMode('signin');
   await initAuth();

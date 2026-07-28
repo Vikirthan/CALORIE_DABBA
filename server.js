@@ -4,7 +4,26 @@ const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const WebSocket = require('ws');
-const { computeMacroTargets, validateProfile, MIN_SAFE_CALORIES, round1 } = require('./lib/macros');
+const { execSync } = require('child_process');
+const pkg = require('./package.json');
+
+function getGitBuildInfo() {
+  try {
+    const commitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+    const commitDate = execSync('git log -1 --format="%cd" --date=format:"%b %d, %Y, %I:%M %p"', { encoding: 'utf8' }).trim();
+    return {
+      version: `v${pkg.version || '1.0.0'} (${commitHash})`,
+      lastPushed: commitDate,
+      commitHash,
+    };
+  } catch (err) {
+    return {
+      version: `v${pkg.version || '1.0.0'}`,
+      lastPushed: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      commitHash: '',
+    };
+  }
+}
 
 const PORT = process.env.PORT || 3000;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -405,7 +424,14 @@ app.get('/api/config', (req, res) => {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return res.status(500).json({ error: 'Supabase is not configured on the server (missing SUPABASE_URL / SUPABASE_ANON_KEY)' });
   }
-  res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
+  const buildInfo = getGitBuildInfo();
+  res.json({
+    supabaseUrl: SUPABASE_URL,
+    supabaseAnonKey: SUPABASE_ANON_KEY,
+    version: buildInfo.version,
+    lastPushed: buildInfo.lastPushed,
+    commitHash: buildInfo.commitHash,
+  });
 });
 
 // Admin approval panel: lists unapproved sign-ups and lets the admin accept/reject

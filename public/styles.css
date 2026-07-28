@@ -1299,3 +1299,41 @@ input:focus, textarea:focus, select:focus {
   font-size: 0.95rem;
 }
 
+/* Settings Version & Last Pushed Footer */
+.settings-version-footer {
+  margin-top: 14px;
+}
+
+.version-info-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0 0 0;
+}
+
+.version-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.version-dot {
+  color: var(--cardamom-bright);
+  font-size: 0.6rem;
+}
+
+.version-pushed-text {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+
