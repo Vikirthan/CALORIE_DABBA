@@ -771,10 +771,10 @@ function renderEntries(entries) {
 
   if (!window.mealGroupsExpanded) {
     window.mealGroupsExpanded = {
-      breakfast: true,
-      lunch: true,
-      snack: true,
-      dinner: true
+      breakfast: false,
+      lunch: false,
+      snack: false,
+      dinner: false
     };
   }
 
