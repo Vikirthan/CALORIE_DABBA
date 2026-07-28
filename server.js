@@ -136,14 +136,22 @@ JSON format:
 
 const INSIGHTS_SYSTEM_PROMPT = `You are a supportive, concise nutrition coach for someone eating mostly Indian home-cooked food. Given a person's stats and calculated calorie/macro targets, write a short insight (3-4 sentences, plain prose, no markdown, no headers, no bullet points) explaining their daily calorie target relative to their maintenance level and practical tips for hitting their protein/carb/fat/fiber ranges with everyday Indian meals. Be encouraging and specific to the numbers given.`;
 
-const COACH_SYSTEM_PROMPT = `You are a top-tier, evidence-based physique and performance coach who eats mostly Indian home-cooked food. A client gives you their body stats, their BMR and TDEE (maintenance calories), and a specific goal in their own words — which may be a nuanced framing like "muscle gain", "lean bulk", "recomp", "aggressive cut", "strength training prep", etc, not just generic lose/maintain/gain. Use real coaching judgment to set the numbers correctly for THAT specific goal:
-- Lean bulk: a small, controlled surplus (roughly 5-10% above TDEE) to minimize fat gain while still building muscle.
-- Muscle gain (not "lean"): a moderate surplus (roughly 10-20% above TDEE).
+const COACH_SYSTEM_PROMPT = `You are a top-tier, evidence-based physique and performance coach who eats mostly Indian home-cooked food. A client gives you their body stats, their BMR and TDEE (maintenance calories), and a specific goal in their own words — which may be a nuanced framing like "muscle gain", "lean bulk", "recomp", "aggressive cut", "shredding", etc. Use real coaching judgment to set the numbers correctly for THAT specific goal:
+- Lean bulk: a small, controlled surplus (roughly 5-10% above TDEE, e.g. TDEE + 200-300 kcal).
+- Muscle gain: a moderate surplus (roughly 10-15% above TDEE).
 - Recomposition (recomp): calories at or very close to maintenance, with protein pushed high.
-- Aggressive cut / shredding: a larger deficit (roughly 20-25% below TDEE), still keeping protein high to preserve muscle.
+- Aggressive cut / shredding: a larger deficit (roughly 20-25% below TDEE).
 - General fat loss: a moderate deficit (roughly 15-20% below TDEE).
-- Endurance/performance goals: closer to maintenance with higher carbs.
-Protein should generally run 1.6-2.4 g/kg bodyweight, favoring the higher end for muscle-gain and cut-while-preserving-muscle goals. Fat should not go below roughly 0.6 g/kg. Carbs should fill the remainder of the calorie target after protein and fat are allocated.
+- Maintenance: calories set at TDEE.
+
+To calculate macros precisely, follow this strict math:
+1. Protein: Set between 1.6g and 2.2g per kg of bodyweight (favoring 2.0g-2.2g for fat loss/recomp/muscle gain).
+2. Fat: Set to 20% to 30% of the daily calorie target (typically 25% for balanced health). To get fat in grams, take (goal_calories * fat_percent) / 9.
+3. Carbs: Must fill all remaining calories. To get carbs in grams, take (goal_calories - (protein_g * 4 + fat_g * 9)) / 4.
+4. Fiber: Set to 25g to 35g depending on size/calories.
+
+Ensure your calculations are mathematically consistent: (protein_g * 4 + fat_g * 9 + carbs_g * 4) should equal goal_calories.
+
 Respond with ONLY a single valid JSON object and nothing else — no markdown fences, no explanation outside the JSON. The JSON must have exactly these keys: {"goal_calories": number, "protein_g": number, "fat_g": number, "carbs_g": number, "fiber_g": number, "rationale": string}. "rationale" should be 2-4 confident, coach-toned sentences explaining why these specific numbers fit this specific goal.`;
 
 function extractJson(text) {
@@ -278,6 +286,52 @@ async function callGemini(systemPrompt, userPrompt, imagePayload = null) {
   throw lastError || new Error('All Gemini models failed');
 }
 
+async function callGeminiText(systemPrompt, userPrompt) {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not set on the server');
+  }
+
+  let lastError = null;
+  for (const model of GEMINI_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+      const payload = {
+        system_instruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          temperature: 0.2,
+        },
+      };
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const bodyText = await res.text().catch(() => '');
+        throw new Error(`Gemini API model ${model} HTTP ${res.status}: ${bodyText.slice(0, 150)}`);
+      }
+
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error(`Empty content response from Gemini model ${model}`);
+      }
+
+      return text.trim();
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('All Gemini models failed');
+}
+
 async function estimateNutritionText(systemPrompt, userPrompt) {
   if (GEMINI_API_KEY) {
     try {
@@ -345,15 +399,9 @@ async function generateInsights(profile, targets) {
   }. BMR ${targets.bmr} kcal, maintenance (TDEE) ${targets.tdee} kcal, daily calorie target ${targets.goal_calories} kcal (calorie delta vs maintenance: ${targets.calorie_delta}, positive means deficit). Protein target ${targets.protein.min_g}-${targets.protein.max_g}g, fat ${targets.fat.min_g}-${targets.fat.max_g}g, carbs ${targets.carbs.min_g}-${targets.carbs.max_g}g, fiber at least ${targets.fiber.min_g}g.`;
 
   try {
-    return await callGroq(
-      [
-        { role: 'system', content: INSIGHTS_SYSTEM_PROMPT },
-        { role: 'user', content: summary },
-      ],
-      GROQ_TEXT_MODEL,
-      { expectJson: false }
-    );
+    return await callGeminiText(INSIGHTS_SYSTEM_PROMPT, summary);
   } catch (err) {
+    console.warn(`[AI Provider Fallback] Gemini API insights failed (${err.message}). Using local fallback...`);
     return fallbackInsights(targets);
   }
 }
@@ -418,14 +466,7 @@ async function requestCoachPlan(profile, baseline) {
   }). Set the daily calorie target and macro targets that best fit this specific goal.`;
 
   try {
-    const plan = await callGroq(
-      [
-        { role: 'system', content: COACH_SYSTEM_PROMPT },
-        { role: 'user', content: summary },
-      ],
-      GROQ_TEXT_MODEL,
-      { expectJson: true }
-    );
+    const plan = await callGemini(COACH_SYSTEM_PROMPT, summary);
     if (
       typeof plan.goal_calories !== 'number' ||
       typeof plan.protein_g !== 'number' ||
@@ -436,6 +477,7 @@ async function requestCoachPlan(profile, baseline) {
     }
     return plan;
   } catch (err) {
+    console.error('Gemini coach plan failed:', err);
     return null;
   }
 }

@@ -460,9 +460,9 @@ async function refreshWeeklyChart() {
   for (const e of (data || [])) {
     if (byDate[e.date]) {
       byDate[e.date].calories += num(e.calories);
-      byDate[e.date].protein  += num(e.protein);
-      byDate[e.date].carbs    += num(e.carbs);
-      byDate[e.date].fat      += num(e.fat);
+      byDate[e.date].protein += num(e.protein);
+      byDate[e.date].carbs += num(e.carbs);
+      byDate[e.date].fat += num(e.fat);
     }
   }
   weeklyChartData = dates.map(d => byDate[d]);
@@ -651,41 +651,16 @@ function renderGauge(entries) {
   // --- Spring ring arc ---
   const ratio = Math.min(totals.calories / goal, 1);
   const offset = RING_CIRCUMFERENCE * (1 - ratio);
-  const glowLayer = $('ringGlowLayer');
-  
-  // Close the overlap gap perfectly at 100% by disabling dasharray
-  if (ratio >= 0.999) {
-    ring.style.strokeDasharray = 'none';
-    if (glowLayer) glowLayer.style.strokeDasharray = 'none';
-  } else {
-    ring.style.strokeDasharray = `${RING_CIRCUMFERENCE}px`;
-    ring.style.strokeDashoffset = `${offset}px`;
-    if (glowLayer) {
-      glowLayer.style.strokeDasharray = `${RING_CIRCUMFERENCE}px`;
-      glowLayer.style.strokeDashoffset = `${offset}px`;
-    }
-  }
+  ring.style.strokeDashoffset = offset;
 
   // --- Color states ---
   const over = totals.calories > goal;
   const onTarget = !over && ratio >= 0.9; // within 90-100% = goal achieved 🎉
   const justReachedGoal = onTarget && !_wasGoalReached && prevCalories >= 0;
 
-  // Set colors on progress & glow layer
-  const strokeColor = over ? 'url(#ringGradientOver)' : onTarget ? 'url(#ringGradientGoal)' : 'url(#ringGradientNormal)';
-  ring.setAttribute('stroke', strokeColor);
-  if (glowLayer) {
-    glowLayer.setAttribute('stroke', strokeColor);
-    glowLayer.classList.toggle('over-goal', over);
-    glowLayer.classList.toggle('goal-achieved', onTarget);
-  }
-
-  // Apply drop shadow glow on the parent SVG tag (eliminating square clipping bugs)
-  const svgEl = ring.parentElement;
-  if (svgEl) {
-    svgEl.classList.toggle('over-goal', over);
-    svgEl.classList.toggle('goal-achieved', onTarget);
-  }
+  ring.classList.toggle('over-goal', over);
+  ring.classList.toggle('goal-achieved', onTarget);
+  ring.setAttribute('stroke', over ? 'url(#ringGradientOver)' : onTarget ? 'url(#ringGradientGoal)' : 'url(#ringGradientNormal)');
 
   // Card glow
   gaugeCard.classList.toggle('goal-reached', onTarget || over);
@@ -693,7 +668,7 @@ function renderGauge(entries) {
   // --- Goal-achieved pulse & particles (only fires the moment goal is crossed) ---
   if (justReachedGoal) {
     triggerGoalPulse();
-    showToast('Daily goal reached! Great work!');
+    showToast('🎯 Daily goal reached! Great work!');
   }
   _wasGoalReached = onTarget;
 
@@ -703,7 +678,7 @@ function renderGauge(entries) {
   if (over) {
     statusEl.textContent = `${Math.round(totals.calories - goal)} kcal over ${goal} goal`;
   } else if (onTarget) {
-    statusEl.textContent = `Goal reached! ${goal} kcal`;
+    statusEl.textContent = `🎯 Goal reached! ${goal} kcal`;
   } else {
     statusEl.textContent = `${Math.round(goal - totals.calories)} kcal remaining of ${goal}`;
   }
@@ -750,8 +725,8 @@ function renderRangeBars(entries) {
       state === 'within'
         ? 'Within target range'
         : state === 'under'
-        ? `${round1(min - bar.actual)}g below minimum`
-        : `${round1(bar.actual - max)}g above maximum`;
+          ? `${round1(min - bar.actual)}g below minimum`
+          : `${round1(bar.actual - max)}g above maximum`;
 
     const row = document.createElement('div');
     row.className = 'range-bar-row';
@@ -771,36 +746,10 @@ function renderRangeBars(entries) {
 }
 
 const MEAL_GROUPS_META = [
-  { 
-    key: 'breakfast', 
-    label: 'Breakfast', 
-    icon: `<svg class="meal-group-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#f5c04e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M18 22H6M16 18a4 4 0 0 0-8 0M12 2v4M5.22 10.22l2.83 2.83M18.78 10.22l-2.83 2.83M2 18h4M18 18h4" />
-    </svg>` 
-  },
-  { 
-    key: 'lunch', 
-    label: 'Lunch', 
-    icon: `<svg class="meal-group-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#9bc296" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="4" />
-      <path d="M3 11h18M11 11v10M11 16h10" />
-    </svg>` 
-  },
-  { 
-    key: 'snack', 
-    label: 'Snack', 
-    icon: `<svg class="meal-group-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#ffd873" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3" />
-    </svg>` 
-  },
-  { 
-    key: 'dinner', 
-    label: 'Dinner', 
-    icon: `<svg class="meal-group-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#e08a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-      <path d="M19 3v4M21 5h-4" />
-    </svg>` 
-  }
+  { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
+  { key: 'lunch', label: 'Lunch', icon: '🍱' },
+  { key: 'snack', label: 'Snack', icon: '☕' },
+  { key: 'dinner', label: 'Dinner', icon: '🌙' }
 ];
 
 function getMealGroupKey(loggedAt) {
@@ -814,10 +763,10 @@ function getMealGroupKey(loggedAt) {
 function renderEntries(entries) {
   const container = $('entryList');
   container.innerHTML = '';
-  
+
   const hasEntries = entries.length > 0;
   $('emptyState').classList.toggle('hidden', hasEntries);
-  
+
   if (!hasEntries) return;
 
   if (!window.mealGroupsExpanded) {
@@ -843,7 +792,7 @@ function renderEntries(entries) {
 
   MEAL_GROUPS_META.forEach(meta => {
     const groupEntries = grouped[meta.key];
-    
+
     // Calculate subtotals
     let subCal = 0, subP = 0, subC = 0, subF = 0;
     groupEntries.forEach(e => {
@@ -857,7 +806,7 @@ function renderEntries(entries) {
 
     const card = document.createElement('div');
     card.className = 'meal-group-card';
-    
+
     card.innerHTML = `
       <div class="meal-group-header" data-group="${meta.key}">
         <div class="meal-group-title">
@@ -875,7 +824,7 @@ function renderEntries(entries) {
     `;
 
     const listElement = card.querySelector('.meal-group-list');
-    
+
     if (groupEntries.length === 0) {
       const emptyLi = document.createElement('li');
       emptyLi.style.cssText = 'color: var(--text-faint); font-size: 0.8rem; text-align: center; padding: 10px 0; font-style: italic; list-style: none;';
@@ -908,10 +857,10 @@ function renderEntries(entries) {
     header.addEventListener('click', () => {
       const nextState = !window.mealGroupsExpanded[meta.key];
       window.mealGroupsExpanded[meta.key] = nextState;
-      
+
       const list = card.querySelector('.meal-group-list');
       const chevron = card.querySelector('.meal-group-chevron');
-      
+
       if (nextState) {
         list.classList.remove('collapsed');
         chevron.classList.remove('collapsed');
@@ -1268,8 +1217,8 @@ function renderConfirmCard(container, estimate, source, onEdit) {
         <h4 class="cf-items-title">Detected Items &amp; Cooking Breakdown</h4>
         <div class="cf-items-list">
           ${estimate.items
-            .map(
-              (item) => `
+        .map(
+          (item) => `
             <div class="cf-item-card">
               <div class="cf-item-header">
                 <span class="cf-item-name">${escapeHtml(item.name || 'Dish item')}</span>
@@ -1282,8 +1231,8 @@ function renderConfirmCard(container, estimate, source, onEdit) {
               </div>
             </div>
           `
-            )
-            .join('')}
+        )
+        .join('')}
         </div>
       </div>
     `;
@@ -1455,8 +1404,8 @@ function renderProfileResults(targets) {
     targets.calorie_delta > 0
       ? `${targets.calorie_delta} kcal deficit`
       : targets.calorie_delta < 0
-      ? `${-targets.calorie_delta} kcal surplus`
-      : 'at maintenance';
+        ? `${-targets.calorie_delta} kcal surplus`
+        : 'at maintenance';
   const coachBadge = targets.coach_generated
     ? `<div class="coach-badge">🏆 Coach-tailored plan${targets.goal_description ? ` for "${escapeHtml(targets.goal_description)}"` : ''}</div>`
     : '';
