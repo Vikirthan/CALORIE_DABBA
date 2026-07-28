@@ -57,7 +57,29 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-const SYSTEM_PROMPT = `You are a nutrition estimator specialized in Indian home cooking. Given a description or photo of a meal, estimate its nutritional content accurately based on the specified total portion size and ingredients. Pay close attention to exact quantities provided in grams (g) or milliliters (ml) — for example, 500g/500ml of whole milk contains roughly 300-320 kcal, 16g protein, 24g carbs, and 16g fat. If the user explicitly mentions specific calories, macros, or brand label numbers in the text, honor those exact numbers. Respond with ONLY a single valid JSON object and nothing else — no markdown fences, no explanation. The JSON must have exactly these keys: {"description": string, "calories": number, "protein": number, "carbs": number, "fat": number}.`;
+const SYSTEM_PROMPT = `You are a precision nutrition estimator specialized in Indian home cooking, food items, and beverages. Given a description or photo of a meal/food item, perform exact mathematical nutrition calculations based on the total quantity, ingredients, and cooking oil specified.
+
+STRICT NUTRITIONAL BENCHMARKS (Use these exact per-100g / per-unit standards for scaling):
+- Whole Milk (standard cow/buffalo): ~62 kcal, 3.2g protein, 4.8g carbs, 3.5g fat per 100g/100ml. (Example: 500g whole milk = 310 kcal, 16g protein, 24g carbs, 17.5g fat).
+- Toned Milk (low fat): ~54 kcal, 3.1g protein, 4.7g carbs, 3.0g fat per 100g/100ml. (Example: 500g toned milk = 270 kcal, 15.5g protein, 23.5g carbs, 15g fat).
+- Skimmed Milk: ~35 kcal, 3.4g protein, 4.8g carbs, 0.5g fat per 100g/100ml. (Example: 500g skimmed milk = 175 kcal, 17g protein, 24g carbs, 2.5g fat).
+- Paneer: ~265 kcal, 18g protein, 6g carbs, 20g fat per 100g.
+- Curd / Dahi: ~60 kcal, 3.2g protein, 4.5g carbs, 3.3g fat per 100g.
+- Chicken (Boneless / Breast): ~120 kcal, 22.5g protein, 0g carbs, 2.6g fat per 100g raw.
+- Chicken (Curry Cut / Whole): ~165 kcal, 18g protein, 0g carbs, 9.5g fat per 100g raw.
+- Mutton / Goat Meat: ~240 kcal, 20g protein, 0g carbs, 17g fat per 100g raw.
+- Egg (1 whole large, 50g): ~72 kcal, 6.3g protein, 0.4g carbs, 4.8g fat.
+- Steamed Rice (cooked): ~130 kcal, 2.7g protein, 28g carbs, 0.3g fat per 100g. Raw Rice: ~360 kcal per 100g.
+- Roti / Chapati (1 medium, 30g flour): ~85 kcal, 3.5g protein, 18g carbs, 1g fat.
+- Dal / Lentils (cooked): ~120 kcal, 7g protein, 20g carbs, 4g fat per 100g.
+- Oil / Ghee: ~45 kcal, 5g fat per 1 tsp (5ml). ~135 kcal, 15g fat per 1 tbsp (15ml).
+
+MATHEMATICAL SCALING RULE:
+1. Always calculate total values linearly from the specified mass/volume. If the user specifies generic "milk" (without milk type specified), default to Whole Milk (~62 kcal, 3.2g protein, 3.5g fat per 100g -> 500g = ~310 kcal, 16g protein, 17.5g fat).
+2. If the user explicitly provides specific calories/macros or package label numbers in their text prompt (e.g. "500g milk 300 kcal 16g protein 16g fat"), HONOR THOSE EXACT NUMBERS.
+
+Respond with ONLY a single valid JSON object and nothing else — no markdown fences, no explanation outside JSON.
+JSON format: {"description": string, "calories": number, "protein": number, "carbs": number, "fat": number}`;
 
 const INSIGHTS_SYSTEM_PROMPT = `You are a supportive, concise nutrition coach for someone eating mostly Indian home-cooked food. Given a person's stats and calculated calorie/macro targets, write a short insight (3-4 sentences, plain prose, no markdown, no headers, no bullet points) explaining their daily calorie target relative to their maintenance level and practical tips for hitting their protein/carb/fat/fiber ranges with everyday Indian meals. Be encouraging and specific to the numbers given.`;
 
