@@ -268,7 +268,11 @@ async function initAuth() {
   // Then check for an existing session (handles page reloads where
   // the user is already logged in — the hash is already gone by then).
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) await handleSession(session);
+  if (session) {
+    await handleSession(session);
+  } else {
+    await handleSession(null);
+  }
 }
 
 // ---------- Admin approval panel ----------
