@@ -249,13 +249,21 @@ async function handleSession(session) {
 }
 
 async function initAuth() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  await handleSession(session);
+  // Register the auth state listener FIRST — before getSession() —
+  // so we never miss the SIGNED_IN event that fires when Supabase
+  // detects an #access_token hash in the URL after OAuth redirect.
   supabase.auth.onAuthStateChange((_event, session) => {
+    // Clean the ugly token hash from the address bar after OAuth redirect.
+    if (_event === 'SIGNED_IN' && window.location.hash.includes('access_token')) {
+      history.replaceState(null, '', window.location.pathname);
+    }
     handleSession(session);
   });
+
+  // Then check for an existing session (handles page reloads where
+  // the user is already logged in — the hash is already gone by then).
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) await handleSession(session);
 }
 
 // ---------- Admin approval panel ----------
