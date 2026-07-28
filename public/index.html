@@ -19,13 +19,33 @@
 
 <header class="app-header">
   <div class="brand">
-    <span class="brand-dabba" aria-hidden="true">🍱</span>
+    <svg class="brand-dabba-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="4" />
+      <path d="M3 11h18" />
+      <path d="M11 11v10" />
+    </svg>
     <h1 class="brand-title">Dabba</h1>
   </div>
   <div id="headerActions" class="header-actions hidden">
-    <button id="profileBtn" class="icon-btn" aria-label="Profile & macro targets" title="Profile & macro targets">👤</button>
-    <button id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
-    <button id="signOutBtn" class="icon-btn" aria-label="Sign out" title="Sign out">⎋</button>
+    <button id="profileBtn" class="icon-btn" aria-label="Profile & macro targets" title="Profile & macro targets">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+    </button>
+    <button id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+    </button>
+    <button id="signOutBtn" class="icon-btn" aria-label="Sign out" title="Sign out">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <polyline points="16 17 21 12 16 7" />
+        <line x1="21" y1="12" x2="9" y2="12" />
+      </svg>
+    </button>
   </div>
 </header>
 
@@ -33,7 +53,11 @@
 <div id="authOverlay" class="auth-overlay hidden">
   <div class="auth-card">
     <div class="auth-brand">
-      <span class="brand-dabba" aria-hidden="true">🍱</span>
+      <svg class="brand-dabba-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="4" />
+        <path d="M3 11h18" />
+        <path d="M11 11v10" />
+      </svg>
       <h1 class="brand-title">Dabba</h1>
     </div>
     <p class="auth-subtitle">Sign in to sync your log across devices.</p>
@@ -71,7 +95,11 @@
 <div id="pendingOverlay" class="auth-overlay hidden">
   <div class="auth-card">
     <div class="auth-brand">
-      <span class="brand-dabba" aria-hidden="true">🍱</span>
+      <svg class="brand-dabba-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="4" />
+        <path d="M3 11h18" />
+        <path d="M11 11v10" />
+      </svg>
       <h1 class="brand-title">Dabba</h1>
     </div>
     <p class="auth-subtitle">Your account is created — an admin just needs to approve it before you can start logging.</p>
@@ -103,12 +131,20 @@
 <main id="appMain" class="app-main hidden">
 
   <nav class="date-nav">
-    <button id="prevDay" class="icon-btn" aria-label="Previous day">◀</button>
+    <button id="prevDay" class="icon-btn" aria-label="Previous day">
+      <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+    </button>
     <div class="date-label">
       <span id="dateRelative">Today</span>
       <span id="dateFull" class="date-full"></span>
     </div>
-    <button id="nextDay" class="icon-btn" aria-label="Next day">▶</button>
+    <button id="nextDay" class="icon-btn" aria-label="Next day">
+      <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </button>
   </nav>
 
   <section class="gauge-card" id="gaugeCard">
@@ -138,30 +174,15 @@
             <stop offset="0%" stop-color="#2f4d56" />
             <stop offset="100%" stop-color="#223841" />
           </linearGradient>
-          <!-- Glow filter for the progress ring -->
-          <filter id="ringGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <!-- Stronger gold glow for goal-achieved state -->
-          <filter id="ringGlowGoal" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
         </defs>
         <!-- Track ring -->
         <circle class="ring-track" cx="100" cy="100" r="88" />
         <!-- Goal-achieved pulse ring (shown only on target) -->
         <circle id="ringPulse" class="ring-pulse hidden" cx="100" cy="100" r="88" />
+        <!-- Vector Glow Layer -->
+        <circle id="ringGlowLayer" class="ring-glow-layer" cx="100" cy="100" r="88" stroke="url(#ringGradientNormal)" />
         <!-- Progress ring -->
-        <circle id="ringProgress" class="ring-progress" cx="100" cy="100" r="88"
-          stroke="url(#ringGradientNormal)" filter="url(#ringGlow)" />
+        <circle id="ringProgress" class="ring-progress" cx="100" cy="100" r="88" stroke="url(#ringGradientNormal)" />
       </svg>
       <!-- Particle burst container -->
       <div id="ringParticles" class="ring-particles"></div>
