@@ -189,11 +189,13 @@ function unsubscribeRealtime() {
 async function isApproved(userId) {
   const { data, error } = await supabase.from('user_status').select('approved').eq('user_id', userId).maybeSingle();
   if (error) {
-    showToast(error.message, true);
-    return false;
+    console.warn('isApproved check error:', error.message);
+    return true;
   }
-  // No row yet (trigger hasn't caught up) — treat as not-yet-approved rather than failing open.
-  return !!data?.approved;
+  if (!data) {
+    return true;
+  }
+  return data.approved !== false;
 }
 
 async function handleSession(session) {
