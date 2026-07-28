@@ -399,9 +399,16 @@ async function generateInsights(profile, targets) {
   }. BMR ${targets.bmr} kcal, maintenance (TDEE) ${targets.tdee} kcal, daily calorie target ${targets.goal_calories} kcal (calorie delta vs maintenance: ${targets.calorie_delta}, positive means deficit). Protein target ${targets.protein.min_g}-${targets.protein.max_g}g, fat ${targets.fat.min_g}-${targets.fat.max_g}g, carbs ${targets.carbs.min_g}-${targets.carbs.max_g}g, fiber at least ${targets.fiber.min_g}g.`;
 
   try {
-    return await callGeminiText(INSIGHTS_SYSTEM_PROMPT, summary);
+    return await callGroq(
+      [
+        { role: 'system', content: INSIGHTS_SYSTEM_PROMPT },
+        { role: 'user', content: summary },
+      ],
+      GROQ_TEXT_MODEL,
+      { expectJson: false }
+    );
   } catch (err) {
-    console.warn(`[AI Provider Fallback] Gemini API insights failed (${err.message}). Using local fallback...`);
+    console.warn(`[AI Provider Fallback] Groq API insights failed (${err.message}). Using local fallback...`);
     return fallbackInsights(targets);
   }
 }
@@ -466,7 +473,14 @@ async function requestCoachPlan(profile, baseline) {
   }). Set the daily calorie target and macro targets that best fit this specific goal.`;
 
   try {
-    const plan = await callGemini(COACH_SYSTEM_PROMPT, summary);
+    const plan = await callGroq(
+      [
+        { role: 'system', content: COACH_SYSTEM_PROMPT },
+        { role: 'user', content: summary },
+      ],
+      GROQ_TEXT_MODEL,
+      { expectJson: true }
+    );
     if (
       typeof plan.goal_calories !== 'number' ||
       typeof plan.protein_g !== 'number' ||
@@ -477,7 +491,7 @@ async function requestCoachPlan(profile, baseline) {
     }
     return plan;
   } catch (err) {
-    console.error('Gemini coach plan failed:', err);
+    console.error('Groq coach plan failed:', err);
     return null;
   }
 }
