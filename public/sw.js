@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dabba-v2';
+const CACHE_NAME = 'dabba-v3';
 const ASSETS = [
   '/',
   '/index.html',

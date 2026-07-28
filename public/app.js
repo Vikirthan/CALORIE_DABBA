@@ -662,13 +662,20 @@ function renderGauge(entries) {
   ring.classList.toggle('goal-achieved', onTarget);
   ring.setAttribute('stroke', over ? 'url(#ringGradientOver)' : onTarget ? 'url(#ringGradientGoal)' : 'url(#ringGradientNormal)');
 
+  // Apply circular box shadow glow on the HTML div container (completely eliminating square clipping bugs)
+  const ringWrap = $('ringWrap');
+  if (ringWrap) {
+    ringWrap.classList.toggle('over-goal', over);
+    ringWrap.classList.toggle('goal-achieved', onTarget);
+  }
+
   // Card glow
   gaugeCard.classList.toggle('goal-reached', onTarget || over);
 
   // --- Goal-achieved pulse & particles (only fires the moment goal is crossed) ---
   if (justReachedGoal) {
     triggerGoalPulse();
-    showToast('🎯 Daily goal reached! Great work!');
+    showToast('Daily goal reached! Great work!');
   }
   _wasGoalReached = onTarget;
 
@@ -678,7 +685,7 @@ function renderGauge(entries) {
   if (over) {
     statusEl.textContent = `${Math.round(totals.calories - goal)} kcal over ${goal} goal`;
   } else if (onTarget) {
-    statusEl.textContent = `🎯 Goal reached! ${goal} kcal`;
+    statusEl.textContent = `Goal reached! ${goal} kcal`;
   } else {
     statusEl.textContent = `${Math.round(goal - totals.calories)} kcal remaining of ${goal}`;
   }
