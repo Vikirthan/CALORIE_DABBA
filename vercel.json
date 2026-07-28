@@ -2,20 +2,38 @@
   "version": 2,
   "builds": [
     {
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "server.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["public/**"]
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "handle": "filesystem"
+      "src": "/api/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/sw.js",
+      "dest": "public/sw.js"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "public/manifest.json"
+    },
+    {
+      "src": "/icons/(.*)",
+      "dest": "public/icons/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|ico|json|webp|svg|jpg|jpeg|gif|woff|woff2|ttf))",
+      "dest": "public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "public/index.html"
     }
   ]
 }

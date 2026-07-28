@@ -585,6 +585,9 @@ app.post('/api/estimate-photo', async (req, res) => {
 });
 
 app.get('*', (req, res) => {
+  // When running locally (node server.js), serve the SPA fallback.
+  // On Vercel, this route is never reached — all static assets are served
+  // by @vercel/static CDN and all API routes go to /api/*.
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -595,3 +598,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
