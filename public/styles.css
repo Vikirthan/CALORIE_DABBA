@@ -123,6 +123,12 @@ select:focus {
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
 }
 
+.brand-dabba-svg {
+  width: 1.95rem;
+  height: 1.95rem;
+  filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35));
+}
+
 .brand-title {
   font-family: var(--font-display);
   font-weight: 800;
