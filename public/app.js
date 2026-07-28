@@ -137,6 +137,30 @@ $('authToggleMode').addEventListener('click', () => {
   setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
 });
 
+// Google OAuth — redirects to Google and back; Supabase handles the token exchange
+$('googleSignInBtn').addEventListener('click', async () => {
+  if (!supabase) {
+    showAuthMessage('App is still loading — please wait a moment.', true);
+    return;
+  }
+  const btn = $('googleSignInBtn');
+  btn.disabled = true;
+  const origHTML = btn.innerHTML;
+  btn.textContent = 'Redirecting to Google…';
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) throw error;
+    // Browser redirects to Google — execution stops here normally.
+  } catch (err) {
+    showAuthMessage(err.message, true);
+    btn.disabled = false;
+    btn.innerHTML = origHTML;
+  }
+});
+
 $('authForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!supabase) {

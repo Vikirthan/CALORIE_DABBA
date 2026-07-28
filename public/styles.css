@@ -987,6 +987,64 @@ input:focus, textarea:focus, select:focus {
 
 .auth-message.error { color: var(--chili); }
 
+/* OAuth buttons */
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  border: 1px solid var(--border-strong);
+}
+
+.oauth-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.oauth-btn:active { transform: translateY(0); opacity: 0.85; }
+.oauth-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.oauth-google {
+  background: #fff;
+  color: #3c4043;
+}
+
+.oauth-google:hover { background: #f8f8f8; }
+
+.oauth-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* "or" divider between OAuth and email/password */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 2px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-strong);
+}
+
 /* Must outrank .auth-overlay (z-index 40) since the admin panel can be opened
    from the sign-in screen, which otherwise covers it completely. */
 #adminOverlay { z-index: 60; }
