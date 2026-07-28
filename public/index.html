@@ -22,15 +22,15 @@
     <span class="brand-dabba" aria-hidden="true">🍱</span>
     <h1 class="brand-title">Dabba</h1>
   </div>
-  <div id="headerActions" class="header-actions hidden">
+  <div id="headerActions" class="header-actions">
     <button id="profileBtn" class="icon-btn" aria-label="Profile & macro targets" title="Profile & macro targets">👤</button>
     <button id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
-    <button id="signOutBtn" class="icon-btn" aria-label="Sign out" title="Sign out">⎋</button>
+    <button id="signOutBtn" class="icon-btn hidden" aria-label="Sign out" title="Sign out">⎋</button>
   </div>
 </header>
 
-<!-- Auth gate — shown until a Supabase session exists, then hidden -->
-<div id="authOverlay" class="auth-overlay">
+<!-- Auth gate — hidden by default so user goes directly into app -->
+<div id="authOverlay" class="auth-overlay hidden">
   <div class="auth-card">
     <div class="auth-brand">
       <span class="brand-dabba" aria-hidden="true">🍱</span>
@@ -87,7 +87,7 @@
   </div>
 </div>
 
-<main id="appMain" class="app-main hidden">
+<main id="appMain" class="app-main">
 
   <nav class="date-nav">
     <button id="prevDay" class="icon-btn" aria-label="Previous day">◀</button>

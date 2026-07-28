@@ -70,14 +70,39 @@ async function api(path, options) {
 // Same, but attaches the current Supabase session's access token — used for
 // the one endpoint (POST /api/profile) that needs to know who's calling.
 async function apiAuthed(path, options = {}) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not signed in');
+  let token = 'guest-token';
+  if (supabase) {
+    const { data } = await supabase.auth.getSession().catch(() => ({ data: {} }));
+    if (data?.session) token = data.session.access_token;
+  }
   return api(path, {
     ...options,
-    headers: { ...(options.headers || {}), Authorization: `Bearer ${session.access_token}` },
+    headers: { ...(options.headers || {}), Authorization: `Bearer ${token}` },
   });
+}
+
+function getLocalEntries() {
+  try {
+    return JSON.parse(localStorage.getItem('dabba_entries') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function setLocalEntries(entries) {
+  localStorage.setItem('dabba_entries', JSON.stringify(entries));
+}
+
+function getLocalProfile() {
+  try {
+    return JSON.parse(localStorage.getItem('dabba_profile') || 'null');
+  } catch (e) {
+    return null;
+  }
+}
+
+function setLocalProfile(prof) {
+  localStorage.setItem('dabba_profile', JSON.stringify(prof));
 }
 
 function round1(n) {
@@ -199,14 +224,15 @@ async function isApproved(userId) {
 }
 
 async function handleSession(session) {
-  currentSession = session;
   if (session) {
+    currentSession = session;
     if (!(await isApproved(session.user.id))) {
       showPending();
       unsubscribeRealtime();
       return;
     }
     showApp();
+    if ($('signOutBtn')) $('signOutBtn').classList.remove('hidden');
     subscribeRealtime(session.user.id);
     await loadProfileAndTargets();
     await refresh();
@@ -219,16 +245,24 @@ async function handleSession(session) {
       }, 600);
     }
   } else {
-    hideApp();
+    currentSession = { user: { id: '00000000-0000-0000-0000-000000000000' }, isGuest: true };
+    showApp();
+    if ($('signOutBtn')) $('signOutBtn').classList.add('hidden');
     unsubscribeRealtime();
+    await loadProfileAndTargets();
+    await refresh();
   }
 }
 
 async function initAuth() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  await handleSession(session);
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    await handleSession(session);
+  } catch (err) {
+    await handleSession(null);
+  }
   supabase.auth.onAuthStateChange((_event, session) => {
     handleSession(session);
   });
@@ -343,13 +377,29 @@ $('nextDay').addEventListener('click', () => {
 async function refresh() {
   renderDateNav();
   if (!currentSession) return;
+  const dateKey = toDateKey(currentDate);
+
+  if (currentSession.isGuest) {
+    const all = getLocalEntries();
+    const filtered = all.filter((e) => e.date === dateKey);
+    renderEntries(filtered);
+    renderGauge(filtered);
+    renderRangeBars(filtered);
+    return;
+  }
+
   const { data, error } = await supabase
     .from('entries')
     .select('*')
-    .eq('date', toDateKey(currentDate))
+    .eq('date', dateKey)
     .order('logged_at', { ascending: false });
   if (error) {
-    showToast(error.message, true);
+    console.warn('Supabase entries query error, falling back to local storage:', error.message);
+    const all = getLocalEntries();
+    const filtered = all.filter((e) => e.date === dateKey);
+    renderEntries(filtered);
+    renderGauge(filtered);
+    renderRangeBars(filtered);
     return;
   }
   renderEntries(data);
@@ -482,7 +532,14 @@ function renderEntries(entries) {
 
   list.querySelectorAll('.delete-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const { error } = await supabase.from('entries').delete().eq('id', btn.dataset.id);
+      const id = btn.dataset.id;
+      if (currentSession.isGuest || (id && id.startsWith('local-'))) {
+        const all = getLocalEntries().filter((e) => String(e.id) !== String(id));
+        setLocalEntries(all);
+        refresh();
+        return;
+      }
+      const { error } = await supabase.from('entries').delete().eq('id', id);
       if (error) {
         showToast(error.message, true);
         return;
@@ -493,6 +550,28 @@ function renderEntries(entries) {
 }
 
 async function addEntry(entry) {
+  const newEntry = {
+    id: 'local-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+    user_id: currentSession ? currentSession.user.id : '00000000-0000-0000-0000-000000000000',
+    date: toDateKey(currentDate),
+    source: entry.source,
+    name: entry.name,
+    serving_note: entry.servingNote || '',
+    calories: entry.calories,
+    protein: entry.protein || 0,
+    carbs: entry.carbs || 0,
+    fat: entry.fat || 0,
+    logged_at: new Date().toISOString(),
+  };
+
+  if (currentSession && currentSession.isGuest) {
+    const all = getLocalEntries();
+    all.unshift(newEntry);
+    setLocalEntries(all);
+    await refresh();
+    return;
+  }
+
   const { error } = await supabase.from('entries').insert({
     user_id: currentSession.user.id,
     date: toDateKey(currentDate),
@@ -504,7 +583,12 @@ async function addEntry(entry) {
     carbs: entry.carbs || 0,
     fat: entry.fat || 0,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.warn('Supabase insert failed, saving to local storage:', error.message);
+    const all = getLocalEntries();
+    all.unshift(newEntry);
+    setLocalEntries(all);
+  }
   await refresh();
 }
 
@@ -905,6 +989,17 @@ $('goalSave').addEventListener('click', async () => {
     showToast('Enter a valid goal', true);
     return;
   }
+  if (currentSession && currentSession.isGuest) {
+    const p = getLocalProfile() || {};
+    p.daily_goal_calories = newGoal;
+    setLocalProfile(p);
+    profile = p;
+    goal = newGoal;
+    settingsOverlay.classList.add('hidden');
+    refresh();
+    showToast('Goal updated');
+    return;
+  }
   const { error } = await supabase
     .from('profiles')
     .upsert({ user_id: currentSession.user.id, daily_goal_calories: newGoal }, { onConflict: 'user_id' });
@@ -925,9 +1020,19 @@ const profileInsights = $('profileInsights');
 const goalRateWrap = $('goalRateWrap');
 
 async function loadProfileAndTargets() {
+  if (currentSession && currentSession.isGuest) {
+    const localProf = getLocalProfile();
+    profile = localProf;
+    macroTargets = localProf?.cached_targets || null;
+    goal = localProf?.daily_goal_calories != null ? num(localProf.daily_goal_calories) : 2000;
+    return;
+  }
   const { data, error } = await supabase.from('profiles').select('*').eq('user_id', currentSession.user.id).maybeSingle();
-  if (error) {
-    showToast(error.message, true);
+  if (error || !data) {
+    const localProf = getLocalProfile();
+    profile = localProf;
+    macroTargets = localProf?.cached_targets || null;
+    goal = localProf?.daily_goal_calories != null ? num(localProf.daily_goal_calories) : 2000;
     return;
   }
   profile = data;
@@ -1092,6 +1197,9 @@ $('profileSave').addEventListener('click', async () => {
     profile = saved.profile;
     macroTargets = saved.targets;
     goal = saved.targets.goal_calories;
+    if (currentSession && currentSession.isGuest) {
+      setLocalProfile({ ...saved.profile, cached_targets: saved.targets, daily_goal_calories: saved.targets.goal_calories });
+    }
     renderProfileResults(saved.targets);
     renderInsights(saved.targets.insights);
     showToast('Profile saved — daily goal updated to match your target');
