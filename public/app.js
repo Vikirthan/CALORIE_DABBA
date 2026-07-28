@@ -832,6 +832,7 @@ function renderConfirmCard(container, estimate, source, onEdit) {
         <input class="cf-fat" type="number" step="0.1" value="${estimate.fat || 0}" />
       </label>
     </div>
+    <span class="field-hint" style="margin-top: 4px; margin-bottom: 12px; display: block;">💡 Feel free to edit any numbers above if you have your exact package label values.</span>
     <button class="primary-btn cf-add">Add to log</button>
     ${onEdit ? '<button type="button" class="secondary-btn cf-edit">← Re-enter details</button>' : ''}
   `;
