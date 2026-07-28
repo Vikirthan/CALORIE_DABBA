@@ -151,10 +151,10 @@ $('googleSignInBtn').addEventListener('click', async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // On localhost use local origin; on Vercel use the deployed URL.
-        redirectTo: window.location.hostname === 'localhost'
-          ? window.location.origin
-          : 'https://calorie-dabba.vercel.app',
+        // Always redirect to production after Google auth.
+        // This ensures OAuth works correctly even if you click
+        // the button while the app is open locally.
+        redirectTo: 'https://calorie-dabba.vercel.app',
       },
     });
     if (error) throw error;
