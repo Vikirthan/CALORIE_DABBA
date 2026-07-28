@@ -161,6 +161,26 @@
   </section>
   <p id="targetsPrompt" class="targets-prompt hidden">Set up your profile to see macro targets.</p>
 
+  <!-- 7-Day Trend Chart -->
+  <section id="weeklyChartSection" class="weekly-chart-card">
+    <div class="weekly-chart-header">
+      <h2 class="section-title">7-Day Trend</h2>
+      <div class="chart-tab-group">
+        <button class="chart-tab active" data-metric="calories">Cal</button>
+        <button class="chart-tab" data-metric="protein">Protein</button>
+        <button class="chart-tab" data-metric="carbs">Carbs</button>
+        <button class="chart-tab" data-metric="fat">Fat</button>
+      </div>
+    </div>
+    <div class="weekly-chart-legend">
+      <span class="legend-dot on-target"></span><span>On target</span>
+      <span class="legend-dot deficit"></span><span>Deficit / Low</span>
+      <span class="legend-dot over"></span><span>Over goal</span>
+    </div>
+    <div id="weeklyBars" class="weekly-bars"></div>
+    <div id="weeklyChartEmpty" class="weekly-chart-empty hidden">No data in the last 7 days yet.</div>
+  </section>
+
   <section class="entries-section">
     <h2 class="section-title">Today's log</h2>
     <ul id="entryList" class="entry-list"></ul>

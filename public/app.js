@@ -392,7 +392,149 @@ async function refresh() {
   renderEntries(data);
   renderGauge(data);
   renderRangeBars(data);
+  await refreshWeeklyChart();
 }
+
+// ---------- 7-Day Trend Chart ----------
+let weeklyChartMetric = 'calories';
+let weeklyChartData = []; // [{date, calories, protein, carbs, fat}] length 7
+
+// Targets per metric (calories uses goal, macros use macroTargets mid-point)
+function getMetricTarget(metric) {
+  if (metric === 'calories') return goal;
+  if (!macroTargets || !macroTargets[metric]) return null;
+  const r = macroTargets[metric];
+  return (r.min_g + r.max_g) / 2;
+}
+
+function metricLabel(metric) {
+  return metric === 'calories' ? 'kcal' : 'g';
+}
+
+function barState(actual, target, metric) {
+  if (!actual || actual === 0) return 'empty';
+  if (!target) return 'on-target';
+  const ratio = actual / target;
+  if (metric === 'calories') {
+    if (ratio > 1.1) return 'over';
+    if (ratio < 0.8) return 'deficit';
+    return 'on-target';
+  } else {
+    // For macros: under minimum = deficit, over maximum = over
+    const min = macroTargets?.[metric]?.min_g ?? target * 0.8;
+    const max = macroTargets?.[metric]?.max_g ?? target * 1.1;
+    if (actual > max) return 'over';
+    if (actual < min) return 'deficit';
+    return 'on-target';
+  }
+}
+
+async function refreshWeeklyChart() {
+  // Fetch last 7 days in one query
+  const today = new Date();
+  const dates = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    dates.push(toDateKey(d));
+  }
+  const startDate = dates[0];
+  const endDate = dates[6];
+
+  const { data, error } = await supabase
+    .from('entries')
+    .select('date, calories, protein, carbs, fat')
+    .eq('user_id', currentSession.user.id)
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  if (error) return; // silently skip — main chart still shows
+
+  // Group by date
+  const byDate = {};
+  for (const d of dates) byDate[d] = { date: d, calories: 0, protein: 0, carbs: 0, fat: 0 };
+  for (const e of (data || [])) {
+    if (byDate[e.date]) {
+      byDate[e.date].calories += num(e.calories);
+      byDate[e.date].protein  += num(e.protein);
+      byDate[e.date].carbs    += num(e.carbs);
+      byDate[e.date].fat      += num(e.fat);
+    }
+  }
+  weeklyChartData = dates.map(d => byDate[d]);
+  renderWeeklyChart();
+}
+
+function renderWeeklyChart() {
+  const container = $('weeklyBars');
+  const empty = $('weeklyChartEmpty');
+  const metric = weeklyChartMetric;
+  const target = getMetricTarget(metric);
+
+  // Check if any data at all
+  const hasAny = weeklyChartData.some(d => d[metric] > 0);
+  empty.classList.toggle('hidden', hasAny);
+  container.classList.toggle('hidden', !hasAny);
+  if (!hasAny) return;
+
+  container.innerHTML = '';
+
+  // Find max value for scaling (use target * 1.3 as floor so the chart isn't squished)
+  const maxVal = Math.max(
+    target ? target * 1.3 : 0,
+    ...weeklyChartData.map(d => d[metric])
+  ) || 1;
+
+  const todayStr = toDateKey(new Date());
+  const CHART_HEIGHT = 110; // px available for bars
+
+  for (const day of weeklyChartData) {
+    const val = day[metric];
+    const pct = Math.min(val / maxVal, 1);
+    const barHeight = Math.max(pct * CHART_HEIGHT, val > 0 ? 6 : 10);
+    const state = barState(val, target, metric);
+
+    // Where to draw the target line (as % from bottom)
+    const targetPct = target ? Math.min(target / maxVal, 1) : null;
+    const targetBottom = targetPct !== null ? `${targetPct * CHART_HEIGHT}px` : null;
+
+    const date = new Date(day.date + 'T00:00:00');
+    const dayName = date.toLocaleDateString(undefined, { weekday: 'short' });
+    const isToday = day.date === todayStr;
+
+    const tipLabel = val > 0
+      ? `${Math.round(val)}${metricLabel(metric)}${target ? ` / ${Math.round(target)}${metricLabel(metric)}` : ''}`
+      : 'No data';
+
+    const col = document.createElement('div');
+    col.className = `wbar-col${isToday ? ' is-today' : ''}`;
+
+    col.innerHTML = `
+      <div class="wbar-value">${val > 0 ? Math.round(val) : ''}</div>
+      <div class="wbar-wrap">
+        ${targetBottom ? `<div class="wbar-target-line" style="bottom:${targetBottom}"></div>` : ''}
+        <div
+          class="wbar ${state}"
+          style="height:${barHeight}px"
+          data-tip="${tipLabel}"
+        ></div>
+      </div>
+      <div class="wbar-day">${isToday ? 'Today' : dayName}</div>
+    `;
+    container.appendChild(col);
+  }
+}
+
+// Wire up metric tab buttons
+document.querySelectorAll('.chart-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    weeklyChartMetric = btn.dataset.metric;
+    renderWeeklyChart();
+  });
+});
+
 
 function totalsFor(entries) {
   return entries.reduce(
