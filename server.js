@@ -8,6 +8,15 @@ const { execSync } = require('child_process');
 const pkg = require('./package.json');
 
 function getGitBuildInfo() {
+  if (process.env.VERCEL_GIT_COMMIT_SHA) {
+    const hash = process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 7);
+    return {
+      version: `v${pkg.version || '1.0.0'} (${hash})`,
+      lastPushed: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      commitHash: hash,
+    };
+  }
+
   try {
     const commitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
     const commitDate = execSync('git log -1 --format="%cd" --date=format:"%b %d, %Y, %I:%M %p"', { encoding: 'utf8' }).trim();
@@ -558,6 +567,10 @@ app.post('/api/estimate-photo', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Dabba running at http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Dabba running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
