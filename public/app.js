@@ -510,7 +510,7 @@ function renderWeeklyChart() {
     col.className = `wbar-col${isToday ? ' is-today' : ''}`;
 
     col.innerHTML = `
-      <div class="wbar-value">${val > 0 ? Math.round(val) : ''}</div>
+      <div class="wbar-value">${val > 0 ? `${Math.round(val)}<span class="wbar-unit">${metricLabel(metric)}</span>` : ''}</div>
       <div class="wbar-wrap">
         ${targetBottom ? `<div class="wbar-target-line" style="bottom:${targetBottom}"></div>` : ''}
         <div
