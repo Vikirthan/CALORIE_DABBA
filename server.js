@@ -64,16 +64,17 @@ const supabaseAdmin =
 
 // Verifies the bearer token the client got from supabase-js auth and attaches the user.
 async function requireUser(req, res, next) {
+  if (!supabaseAdmin) {
+    return res.status(500).json({ error: 'Supabase is not configured on the server (missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)' });
+  }
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
-  if (!token || token === 'guest-token' || !supabaseAdmin) {
-    req.user = { id: '00000000-0000-0000-0000-000000000000', isGuest: true };
-    return next();
+  if (!token) {
+    return res.status(401).json({ error: 'Missing Authorization bearer token' });
   }
   const { data, error } = await supabaseAdmin.auth.getUser(token);
   if (error || !data.user) {
-    req.user = { id: '00000000-0000-0000-0000-000000000000', isGuest: true };
-    return next();
+    return res.status(401).json({ error: 'Invalid or expired session' });
   }
   req.user = data.user;
   next();
@@ -543,10 +544,6 @@ app.post('/api/profile', requireUser, async (req, res) => {
     updated_at: new Date().toISOString(),
   };
 
-  if (req.user.isGuest || !supabaseAdmin) {
-    return res.json({ profile, targets });
-  }
-
   const { data, error } = await supabaseAdmin.from('profiles').upsert(row, { onConflict: 'user_id' }).select().single();
   if (error) {
     return res.status(500).json({ error: error.message });
@@ -585,6 +582,10 @@ app.post('/api/estimate-photo', async (req, res) => {
     }
     res.status(err.status || 500).json({ error: err.message });
   }
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 if (require.main === module) {
