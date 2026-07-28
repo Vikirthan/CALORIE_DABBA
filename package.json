@@ -1,6 +1,6 @@
 {
   "name": "dabba",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Personal calorie tracker for Indian home cooking, powered by Groq",
   "main": "server.js",
   "scripts": {
