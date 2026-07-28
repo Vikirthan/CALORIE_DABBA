@@ -659,11 +659,32 @@ async function handlePhotoFile(file) {
     resetPhotoTab();
   }
 }
-
-// ---------- Describe (structured form) ----------
 const describeForm = $('describeForm');
+const fullMealForm = $('fullMealForm');
+const modeFullMealBtn = $('modeFullMealBtn');
+const modeSingleBtn = $('modeSingleBtn');
 const textLoading = $('textLoading');
 const textConfirm = $('textConfirm');
+
+let currentDescribeMode = 'full';
+
+if (modeFullMealBtn && modeSingleBtn) {
+  modeFullMealBtn.addEventListener('click', () => {
+    currentDescribeMode = 'full';
+    modeFullMealBtn.classList.add('active');
+    modeSingleBtn.classList.remove('active');
+    if (fullMealForm) fullMealForm.classList.remove('hidden');
+    if (describeForm) describeForm.classList.add('hidden');
+  });
+
+  modeSingleBtn.addEventListener('click', () => {
+    currentDescribeMode = 'single';
+    modeSingleBtn.classList.add('active');
+    modeFullMealBtn.classList.remove('active');
+    if (describeForm) describeForm.classList.remove('hidden');
+    if (fullMealForm) fullMealForm.classList.add('hidden');
+  });
+}
 
 $('mainIngredient').addEventListener('change', () => {
   const isOther = $('mainIngredient').value === 'Other';
@@ -684,7 +705,7 @@ function buildDescription() {
   const rawQtyUnit = $('rawQtyUnit').value;
   if (mainIngredient) {
     let line = `Main ingredient: ${mainIngredient}`;
-    if (rawQty) line += `, raw quantity ${rawQty} ${rawQtyUnit} before cooking`;
+    if (rawQty) line += `, raw quantity / serving: ${rawQty} ${rawQtyUnit}`;
     parts.push(`${line}.`);
   }
 
@@ -701,12 +722,52 @@ function buildDescription() {
   return parts.join(' ');
 }
 
+// Handler for Full Meal Freeform Form
+if (fullMealForm) {
+  fullMealForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const mealInput = $('fullMealInput').value.trim();
+    if (!mealInput) {
+      showToast('Please enter a description for your meal', true);
+      return;
+    }
+    const notes = $('fullMealNotes').value.trim();
+    let description = mealInput;
+    if (notes) description += `. Additional notes: ${notes}`;
+
+    fullMealForm.classList.add('hidden');
+    textConfirm.classList.add('hidden');
+    textLoading.classList.remove('hidden');
+    try {
+      const result = await api('/api/estimate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description }),
+      });
+      textLoading.classList.add('hidden');
+      renderConfirmCard(textConfirm, result, 'text', () => {
+        textConfirm.classList.add('hidden');
+        if (currentDescribeMode === 'full' && fullMealForm) {
+          fullMealForm.classList.remove('hidden');
+        } else if (describeForm) {
+          describeForm.classList.remove('hidden');
+        }
+      });
+    } catch (err) {
+      textLoading.classList.add('hidden');
+      if (fullMealForm) fullMealForm.classList.remove('hidden');
+      showToast(err.message, true);
+    }
+  });
+}
+
+// Handler for Single Dish Form
 describeForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const mainIngredient = $('mainIngredient').value;
   const rawQty = $('rawQty').value;
   if (!mainIngredient || !rawQty) {
-    showToast('Please select a main ingredient and its raw quantity', true);
+    showToast('Please select a main ingredient and its quantity', true);
     return;
   }
   const description = buildDescription();
@@ -734,8 +795,15 @@ describeForm.addEventListener('submit', async (e) => {
 
 function resetDescribeTab() {
   describeForm.reset();
+  if (fullMealForm) fullMealForm.reset();
   $('mainIngredientOtherWrap').classList.add('hidden');
-  describeForm.classList.remove('hidden');
+  if (currentDescribeMode === 'full' && fullMealForm) {
+    fullMealForm.classList.remove('hidden');
+    describeForm.classList.add('hidden');
+  } else {
+    describeForm.classList.remove('hidden');
+    if (fullMealForm) fullMealForm.classList.add('hidden');
+  }
   textLoading.classList.add('hidden');
   textConfirm.classList.add('hidden');
   textConfirm.innerHTML = '';

@@ -777,7 +777,12 @@ input:focus, textarea:focus, select:focus {
 .segmented {
   display: flex;
   gap: 8px;
-  margin-top: -4px;
+  margin-top: 6px;
+}
+
+.describe-mode-segmented {
+  margin-bottom: 16px;
+  margin-top: 0;
 }
 
 .segmented-col {

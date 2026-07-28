@@ -48,6 +48,11 @@ const FOOD_DB = [
   ['Baingan bharta', '1 cup', 160, 3, 14, 10],
   ['Mixed veg curry', '1 cup', 150, 4, 18, 7],
   ['Fruit salad', '1 cup', 100, 1.5, 24, 0.5],
+  ['Milk (whole / full cream)', '1 glass (250ml)', 150, 8, 12, 8],
+  ['Milk (toned / low fat)', '1 glass (250ml)', 120, 8, 12, 4.5],
+  ['Milk (skimmed)', '1 glass (250ml)', 90, 8, 12, 0.5],
+  ['Haldi milk (turmeric milk)', '1 glass (250ml)', 170, 8, 15, 8],
+  ['Badam milk', '1 glass (250ml)', 210, 7, 24, 9],
 ].map(([name, serving, calories, protein, carbs, fat]) => ({
   name,
   serving,

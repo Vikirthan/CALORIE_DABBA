@@ -193,7 +193,27 @@
 
       <!-- Describe -->
       <div class="tab-panel" data-panel="text">
-        <form id="describeForm" class="describe-form">
+        <div class="segmented describe-mode-segmented">
+          <button type="button" id="modeFullMealBtn" class="segmented-btn active">Full Meal (Freeform)</button>
+          <button type="button" id="modeSingleBtn" class="segmented-btn">Single Dish</button>
+        </div>
+
+        <!-- Full Meal Freeform Form -->
+        <form id="fullMealForm" class="describe-form">
+          <label class="field-label">Describe your full meal
+            <textarea id="fullMealInput" class="text-input" rows="3" placeholder="e.g. 1 plate steamed rice, 200g chicken curry, 2 chapatis, and 1 glass of milk (250ml)" required></textarea>
+            <span class="field-hint">Describe everything you ate in one meal — AI will calculate total combined nutrition!</span>
+          </label>
+
+          <label class="field-label">Additional notes (optional)
+            <input id="fullMealNotes" type="text" placeholder="e.g. cooked with 2 tsp ghee, low oil, extra gravy" />
+          </label>
+
+          <button type="submit" id="fullMealSubmit" class="primary-btn">Estimate Full Meal</button>
+        </form>
+
+        <!-- Single Dish Form -->
+        <form id="describeForm" class="describe-form hidden">
           <label class="field-label">Food type
             <select id="foodType">
               <option value="">Select a type…</option>
@@ -205,6 +225,7 @@
               <option value="Soup/stew">Soup / stew</option>
               <option value="Rice dish">Rice dish</option>
               <option value="Bread-based">Bread-based</option>
+              <option value="Beverage/milk">Beverage / milk / drink</option>
               <option value="Salad/raw">Salad / raw</option>
               <option value="Dessert">Dessert</option>
               <option value="Other">Other</option>
@@ -216,6 +237,7 @@
               <option value="">Select an ingredient…</option>
               <option value="Chicken">Chicken</option>
               <option value="Mutton/lamb">Mutton / lamb</option>
+              <option value="Milk/dairy">Milk / dairy</option>
               <option value="Beef">Beef</option>
               <option value="Pork">Pork</option>
               <option value="Fish/seafood">Fish / seafood</option>
@@ -232,13 +254,17 @@
           </label>
 
           <div class="qty-row">
-            <label class="field-label">Quantity before cooking
+            <label class="field-label">Quantity before cooking / serving
               <input id="rawQty" type="number" min="0" step="0.1" placeholder="e.g. 250" />
             </label>
             <label class="field-label qty-unit">Unit
               <select id="rawQtyUnit">
                 <option value="g">grams</option>
+                <option value="ml">ml</option>
                 <option value="kg">kg</option>
+                <option value="cups">cups</option>
+                <option value="glasses">glasses</option>
+                <option value="liters">liters</option>
                 <option value="pieces">pieces</option>
               </select>
             </label>
@@ -265,7 +291,7 @@
             <textarea id="additionalInfo" class="text-input text-input-sm" placeholder="Anything else worth noting — cream, coconut milk, sugar, etc."></textarea>
           </label>
 
-          <button type="submit" id="textSubmit" class="primary-btn">Estimate</button>
+          <button type="submit" id="textSubmit" class="primary-btn">Estimate Dish</button>
         </form>
         <div id="textLoading" class="loading-state hidden">
           <div class="spinner"></div>
