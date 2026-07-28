@@ -741,33 +741,138 @@ function renderRangeBars(entries) {
   }
 }
 
-function renderEntries(entries) {
-  const list = $('entryList');
-  list.innerHTML = '';
-  $('emptyState').classList.toggle('hidden', entries.length > 0);
+const MEAL_GROUPS_META = [
+  { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
+  { key: 'lunch', label: 'Lunch', icon: '🍱' },
+  { key: 'snack', label: 'Snack', icon: '☕' },
+  { key: 'dinner', label: 'Dinner', icon: '🌙' }
+];
 
-  for (const entry of entries) {
-    const li = document.createElement('li');
-    li.className = 'entry-item';
-    const time = new Date(entry.logged_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-    li.innerHTML = `
-      <div class="entry-main">
-        <div class="entry-top">
-          <span class="source-tag ${entry.source}">${entry.source}</span>
-          <span class="entry-time">${time}</span>
-        </div>
-        <div class="entry-name">${escapeHtml(entry.name)}</div>
-        ${entry.serving_note ? `<div class="entry-serving">${escapeHtml(entry.serving_note)}</div>` : ''}
-        <div class="entry-macros">P ${round1(num(entry.protein))}g · C ${round1(num(entry.carbs))}g · F ${round1(num(entry.fat))}g</div>
-      </div>
-      <div class="entry-calories">${Math.round(num(entry.calories))}</div>
-      <button class="delete-btn" data-id="${entry.id}" aria-label="Delete entry">×</button>
-    `;
-    list.appendChild(li);
+function getMealGroupKey(loggedAt) {
+  const hour = new Date(loggedAt).getHours();
+  if (hour >= 5 && hour < 11) return 'breakfast';
+  if (hour >= 11 && hour < 16) return 'lunch';
+  if (hour >= 16 && hour < 19) return 'snack';
+  return 'dinner';
+}
+
+function renderEntries(entries) {
+  const container = $('entryList');
+  container.innerHTML = '';
+  
+  const hasEntries = entries.length > 0;
+  $('emptyState').classList.toggle('hidden', hasEntries);
+  
+  if (!hasEntries) return;
+
+  if (!window.mealGroupsExpanded) {
+    window.mealGroupsExpanded = {
+      breakfast: true,
+      lunch: true,
+      snack: true,
+      dinner: true
+    };
   }
 
-  list.querySelectorAll('.delete-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+  const grouped = {
+    breakfast: [],
+    lunch: [],
+    snack: [],
+    dinner: []
+  };
+
+  for (const entry of entries) {
+    const key = getMealGroupKey(entry.logged_at);
+    grouped[key].push(entry);
+  }
+
+  MEAL_GROUPS_META.forEach(meta => {
+    const groupEntries = grouped[meta.key];
+    
+    // Calculate subtotals
+    let subCal = 0, subP = 0, subC = 0, subF = 0;
+    groupEntries.forEach(e => {
+      subCal += num(e.calories);
+      subP += num(e.protein);
+      subC += num(e.carbs);
+      subF += num(e.fat);
+    });
+
+    const isExpanded = window.mealGroupsExpanded[meta.key];
+
+    const card = document.createElement('div');
+    card.className = 'meal-group-card';
+    
+    card.innerHTML = `
+      <div class="meal-group-header" data-group="${meta.key}">
+        <div class="meal-group-title">
+          <span class="meal-group-chevron ${isExpanded ? '' : 'collapsed'}">▼</span>
+          <span class="meal-group-icon">${meta.icon}</span>
+          <span class="meal-group-label">${meta.label}</span>
+        </div>
+        <div class="meal-group-totals">
+          <span class="meal-group-calories">${Math.round(subCal)} kcal</span>
+          ${subCal > 0 ? `<span class="meal-group-macros">P ${round1(subP)}g · C ${round1(subC)}g · F ${round1(subF)}g</span>` : ''}
+        </div>
+      </div>
+      <ul class="meal-group-list ${isExpanded ? '' : 'collapsed'}" data-group="${meta.key}">
+      </ul>
+    `;
+
+    const listElement = card.querySelector('.meal-group-list');
+    
+    if (groupEntries.length === 0) {
+      const emptyLi = document.createElement('li');
+      emptyLi.style.cssText = 'color: var(--text-faint); font-size: 0.8rem; text-align: center; padding: 10px 0; font-style: italic; list-style: none;';
+      emptyLi.textContent = 'No meals logged';
+      listElement.appendChild(emptyLi);
+    } else {
+      groupEntries.forEach(entry => {
+        const li = document.createElement('li');
+        li.className = 'entry-item';
+        const time = new Date(entry.logged_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        li.innerHTML = `
+          <div class="entry-main">
+            <div class="entry-top">
+              <span class="source-tag ${entry.source}">${entry.source}</span>
+              <span class="entry-time">${time}</span>
+            </div>
+            <div class="entry-name">${escapeHtml(entry.name)}</div>
+            ${entry.serving_note ? `<div class="entry-serving">${escapeHtml(entry.serving_note)}</div>` : ''}
+            <div class="entry-macros">P ${round1(num(entry.protein))}g · C ${round1(num(entry.carbs))}g · F ${round1(num(entry.fat))}g</div>
+          </div>
+          <div class="entry-calories">${Math.round(num(entry.calories))}</div>
+          <button class="delete-btn" data-id="${entry.id}" aria-label="Delete entry">×</button>
+        `;
+        listElement.appendChild(li);
+      });
+    }
+
+    // Toggle collapse handler
+    const header = card.querySelector('.meal-group-header');
+    header.addEventListener('click', () => {
+      const nextState = !window.mealGroupsExpanded[meta.key];
+      window.mealGroupsExpanded[meta.key] = nextState;
+      
+      const list = card.querySelector('.meal-group-list');
+      const chevron = card.querySelector('.meal-group-chevron');
+      
+      if (nextState) {
+        list.classList.remove('collapsed');
+        chevron.classList.remove('collapsed');
+      } else {
+        list.classList.add('collapsed');
+        chevron.classList.add('collapsed');
+      }
+    });
+
+    container.appendChild(card);
+  });
+
+  // Re-attach delete listeners
+  container.querySelectorAll('.delete-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       const { error } = await supabase.from('entries').delete().eq('id', btn.dataset.id);
       if (error) {
         showToast(error.message, true);
