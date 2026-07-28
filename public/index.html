@@ -111,28 +111,60 @@
     <button id="nextDay" class="icon-btn" aria-label="Next day">▶</button>
   </nav>
 
-  <section class="gauge-card">
+  <section class="gauge-card" id="gaugeCard">
     <div class="ring-wrap">
       <svg class="ring" viewBox="0 0 200 200">
         <defs>
+          <!-- Normal fill: green → turmeric -->
           <linearGradient id="ringGradientNormal" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#9bc296" />
-            <stop offset="55%" stop-color="#7fa07a" />
+            <stop offset="40%" stop-color="#7fa07a" />
             <stop offset="100%" stop-color="#e3a530" />
           </linearGradient>
+          <!-- Over-goal fill: gold → chili -->
           <linearGradient id="ringGradientOver" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#f5c04e" />
             <stop offset="55%" stop-color="#e08a5c" />
             <stop offset="100%" stop-color="#c1613a" />
           </linearGradient>
+          <!-- Gold goal-achieved pulse gradient -->
+          <linearGradient id="ringGradientGoal" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffd873" />
+            <stop offset="50%" stop-color="#e3a530" />
+            <stop offset="100%" stop-color="#f5c04e" />
+          </linearGradient>
+          <!-- Track -->
           <linearGradient id="ringTrackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#2f4d56" />
             <stop offset="100%" stop-color="#223841" />
           </linearGradient>
+          <!-- Glow filter for the progress ring -->
+          <filter id="ringGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <!-- Stronger gold glow for goal-achieved state -->
+          <filter id="ringGlowGoal" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
+        <!-- Track ring -->
         <circle class="ring-track" cx="100" cy="100" r="88" />
-        <circle id="ringProgress" class="ring-progress" cx="100" cy="100" r="88" stroke="url(#ringGradientNormal)" />
+        <!-- Goal-achieved pulse ring (shown only on target) -->
+        <circle id="ringPulse" class="ring-pulse hidden" cx="100" cy="100" r="88" />
+        <!-- Progress ring -->
+        <circle id="ringProgress" class="ring-progress" cx="100" cy="100" r="88"
+          stroke="url(#ringGradientNormal)" filter="url(#ringGlow)" />
       </svg>
+      <!-- Particle burst container -->
+      <div id="ringParticles" class="ring-particles"></div>
       <div class="ring-center">
         <span id="totalCalories" class="ring-number">0</span>
         <span class="ring-unit">kcal</span>
@@ -140,20 +172,21 @@
       </div>
     </div>
     <div class="macro-row">
-      <div class="macro-pill">
+      <div class="macro-pill" id="pillProtein">
         <span class="macro-label">Protein</span>
         <span id="macroProtein" class="macro-value">0g</span>
       </div>
-      <div class="macro-pill">
+      <div class="macro-pill" id="pillCarbs">
         <span class="macro-label">Carbs</span>
         <span id="macroCarbs" class="macro-value">0g</span>
       </div>
-      <div class="macro-pill">
+      <div class="macro-pill" id="pillFat">
         <span class="macro-label">Fat</span>
         <span id="macroFat" class="macro-value">0g</span>
       </div>
     </div>
   </section>
+
 
   <section id="macroTargetsSection" class="targets-card hidden">
     <h2 class="section-title">Macro targets</h2>

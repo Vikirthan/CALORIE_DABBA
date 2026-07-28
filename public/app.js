@@ -549,30 +549,137 @@ function totalsFor(entries) {
   );
 }
 
+// Tracks previous calorie value to detect changes and trigger animations
+let _prevCalories = -1;
+let _wasGoalReached = false;
+
+function animateCounter(el, from, to, duration = 600) {
+  const start = performance.now();
+  const range = to - from;
+  function step(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    // Ease out cubic
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(from + range * ease);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function spawnParticles() {
+  const container = $('ringParticles');
+  container.innerHTML = '';
+  const colors = ['#ffd873', '#e3a530', '#f5c04e', '#9bc296', '#7fa07a', '#fff'];
+  const count = 14;
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * 360;
+    const dist = 65 + Math.random() * 35;
+    const rad = (angle * Math.PI) / 180;
+    const tx = `${Math.cos(rad) * dist}px`;
+    const ty = `${Math.sin(rad) * dist}px`;
+    const dot = document.createElement('div');
+    dot.className = 'rp';
+    dot.style.cssText = `
+      background: ${colors[i % colors.length]};
+      --tx: ${tx}; --ty: ${ty};
+      animation-delay: ${i * 0.04}s;
+      width: ${5 + Math.random() * 5}px;
+      height: ${5 + Math.random() * 5}px;
+    `;
+    container.appendChild(dot);
+  }
+  // Clear particles after animation
+  setTimeout(() => { container.innerHTML = ''; }, 1200);
+}
+
+function triggerGoalPulse() {
+  const pulse = $('ringPulse');
+  pulse.classList.remove('hidden', 'pulse-active');
+  // Force reflow so animation restarts
+  void pulse.offsetWidth;
+  pulse.classList.add('pulse-active');
+  pulse.addEventListener('animationend', () => pulse.classList.add('hidden'), { once: true });
+  spawnParticles();
+}
+
+function flashMacroPill(id) {
+  const el = $(id);
+  el.classList.remove('flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
+  el.addEventListener('animationend', () => el.classList.remove('flash'), { once: true });
+}
+
 function renderGauge(entries) {
   const totals = totalsFor(entries);
+  const newCalories = Math.round(totals.calories);
+  const prevCalories = _prevCalories;
+  const ring = $('ringProgress');
+  const gaugeCard = $('gaugeCard');
+  const calEl = $('totalCalories');
 
-  $('totalCalories').textContent = Math.round(totals.calories);
-  $('macroProtein').textContent = `${Math.round(totals.protein)}g`;
-  $('macroCarbs').textContent = `${Math.round(totals.carbs)}g`;
-  $('macroFat').textContent = `${Math.round(totals.fat)}g`;
+  // --- Animated calorie counter ---
+  if (prevCalories !== newCalories) {
+    // Pop animation on the number
+    calEl.classList.remove('pop');
+    void calEl.offsetWidth;
+    calEl.classList.add('pop');
+    calEl.addEventListener('animationend', () => calEl.classList.remove('pop'), { once: true });
+    // Roll the number up/down
+    animateCounter(calEl, prevCalories < 0 ? 0 : prevCalories, newCalories, 550);
+  } else {
+    calEl.textContent = newCalories;
+  }
+  _prevCalories = newCalories;
 
+  // --- Macro pills flash on change ---
+  const pEl = $('macroProtein');
+  const cEl = $('macroCarbs');
+  const fEl = $('macroFat');
+  if (pEl.textContent !== `${Math.round(totals.protein)}g`) flashMacroPill('pillProtein');
+  if (cEl.textContent !== `${Math.round(totals.carbs)}g`) flashMacroPill('pillCarbs');
+  if (fEl.textContent !== `${Math.round(totals.fat)}g`) flashMacroPill('pillFat');
+
+  pEl.textContent = `${Math.round(totals.protein)}g`;
+  cEl.textContent = `${Math.round(totals.carbs)}g`;
+  fEl.textContent = `${Math.round(totals.fat)}g`;
+
+  // --- Spring ring arc ---
   const ratio = Math.min(totals.calories / goal, 1);
   const offset = RING_CIRCUMFERENCE * (1 - ratio);
-  const ring = $('ringProgress');
   ring.style.strokeDashoffset = offset;
 
+  // --- Color states ---
   const over = totals.calories > goal;
+  const onTarget = !over && ratio >= 0.9; // within 90-100% = goal achieved 🎉
+  const justReachedGoal = onTarget && !_wasGoalReached && prevCalories >= 0;
+
   ring.classList.toggle('over-goal', over);
-  ring.setAttribute('stroke', over ? 'url(#ringGradientOver)' : 'url(#ringGradientNormal)');
+  ring.classList.toggle('goal-achieved', onTarget);
+  ring.setAttribute('stroke', over ? 'url(#ringGradientOver)' : onTarget ? 'url(#ringGradientGoal)' : 'url(#ringGradientNormal)');
+
+  // Card glow
+  gaugeCard.classList.toggle('goal-reached', onTarget || over);
+
+  // --- Goal-achieved pulse & particles (only fires the moment goal is crossed) ---
+  if (justReachedGoal) {
+    triggerGoalPulse();
+    showToast('🎯 Daily goal reached! Great work!');
+  }
+  _wasGoalReached = onTarget;
+
+  // --- Status text ---
   const statusEl = $('ringStatus');
   statusEl.classList.toggle('over', over);
   if (over) {
     statusEl.textContent = `${Math.round(totals.calories - goal)} kcal over ${goal} goal`;
+  } else if (onTarget) {
+    statusEl.textContent = `🎯 Goal reached! ${goal} kcal`;
   } else {
     statusEl.textContent = `${Math.round(goal - totals.calories)} kcal remaining of ${goal}`;
   }
 }
+
 
 // ---------- Macro range bars ----------
 function renderRangeBars(entries) {
