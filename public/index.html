@@ -7,6 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#16262a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Dabba" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -281,6 +287,17 @@
       <input id="goalInput" type="number" min="1" />
     </label>
     <button id="goalSave" class="primary-btn">Save</button>
+
+    <div class="pwa-settings-section">
+      <hr class="divider" />
+      <div class="pwa-settings-item">
+        <div class="pwa-settings-info">
+          <h4 class="pwa-settings-title">App Installation</h4>
+          <p id="pwaStatusText" class="pwa-settings-desc">Install Dabba on your device for instant access &amp; offline support.</p>
+        </div>
+        <button id="settingsInstallBtn" type="button" class="secondary-btn pwa-settings-btn">Install App</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -353,6 +370,51 @@
 
 <!-- Always reachable regardless of login state, so it isn't stranded behind the auth screen once signed in -->
 <button type="button" id="adminLinkBtn" class="admin-corner-link">Admin</button>
+
+<!-- Mobile PWA Install Banner Pop-up -->
+<div id="pwaInstallBanner" class="pwa-banner hidden" role="dialog" aria-labelledby="pwaTitle">
+  <div class="pwa-banner-card">
+    <button type="button" id="pwaCloseIconBtn" class="pwa-close-btn" aria-label="Close installation banner">&times;</button>
+    <div class="pwa-banner-header">
+      <div class="pwa-app-badge">🍱</div>
+      <div class="pwa-text-content">
+        <h3 id="pwaTitle" class="pwa-title">Install Dabba App</h3>
+        <p class="pwa-subtitle">Add to home screen for fast daily tracking &amp; offline logging.</p>
+      </div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button type="button" id="pwaInstallBtn" class="primary-btn pwa-action-install">Install App</button>
+      <button type="button" id="pwaDismissBtn" class="secondary-btn pwa-action-dismiss">Not now</button>
+    </div>
+  </div>
+</div>
+
+<!-- iOS Safari Installation Guide Modal -->
+<div id="iosInstallOverlay" class="sheet-overlay hidden">
+  <div class="sheet pwa-ios-sheet">
+    <div class="sheet-handle"></div>
+    <div class="ios-install-header">
+      <div class="pwa-app-badge large">🍱</div>
+      <h2 class="section-title">Install Dabba on iOS</h2>
+      <p class="ios-subtitle">Add Dabba to your iPhone or iPad Home Screen in 2 quick steps:</p>
+    </div>
+    <div class="ios-steps-list">
+      <div class="ios-step-card">
+        <span class="step-badge">1</span>
+        <div class="step-info">
+          <p>Tap the <strong>Share</strong> button <span class="ios-icon-highlight">⎋</span> or <span class="ios-icon-highlight">⬆️</span> in Safari's menu bar.</p>
+        </div>
+      </div>
+      <div class="ios-step-card">
+        <span class="step-badge">2</span>
+        <div class="step-info">
+          <p>Scroll down and select <strong>'Add to Home Screen'</strong> <span class="ios-icon-highlight">➕</span>.</p>
+        </div>
+      </div>
+    </div>
+    <button type="button" id="iosModalCloseBtn" class="primary-btn">Got it!</button>
+  </div>
+</div>
 
 <script src="foods.js"></script>
 <script type="module" src="app.js"></script>

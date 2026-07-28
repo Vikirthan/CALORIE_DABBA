@@ -984,8 +984,170 @@ $('profileSave').addEventListener('click', async () => {
   }
 });
 
+// ---------- PWA & Mobile Installation ----------
+let deferredInstallPrompt = null;
+const DISMISS_KEY = 'dabba_pwa_dismissed';
+const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours dismissal memory
+
+function isStandaloneApp() {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true ||
+    document.referrer.includes('android-app://')
+  );
+}
+
+function isMobileDevice() {
+  return (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.innerWidth <= 768 && ('ontouchstart' in window || navigator.maxTouchPoints > 0))
+  );
+}
+
+function isIOSDevice() {
+  return (
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
+
+function wasDismissedRecently() {
+  const dismissedAt = localStorage.getItem(DISMISS_KEY);
+  if (!dismissedAt) return false;
+  return Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS;
+}
+
+function dismissPWAInstallBanner() {
+  const banner = $('pwaInstallBanner');
+  if (banner) {
+    banner.classList.add('hidden');
+  }
+  localStorage.setItem(DISMISS_KEY, Date.now());
+}
+
+function showPWAInstallBanner() {
+  // CRITICAL: If already running inside the installed app, DO NOT show notification
+  if (isStandaloneApp()) {
+    return;
+  }
+
+  // Show notification pop-up only on mobile when not recently dismissed
+  if (isMobileDevice() && !wasDismissedRecently()) {
+    const banner = $('pwaInstallBanner');
+    if (banner) {
+      setTimeout(() => banner.classList.remove('hidden'), 1200);
+    }
+  }
+}
+
+function triggerPWAInstall() {
+  if (isIOSDevice()) {
+    const iosOverlay = $('iosInstallOverlay');
+    if (iosOverlay) iosOverlay.classList.remove('hidden');
+    dismissPWAInstallBanner();
+    return;
+  }
+
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        showToast('Thank you for installing Dabba!');
+        dismissPWAInstallBanner();
+      }
+      deferredInstallPrompt = null;
+      updateInstallStatusUI();
+    });
+  } else {
+    showToast('To install: open your browser menu and tap "Add to Home screen" or "Install App".');
+  }
+}
+
+function updateInstallStatusUI() {
+  const statusText = $('pwaStatusText');
+  const settingsBtn = $('settingsInstallBtn');
+
+  if (isStandaloneApp()) {
+    if (statusText) statusText.textContent = 'Dabba is running as an installed standalone app.';
+    if (settingsBtn) {
+      settingsBtn.textContent = 'Installed ✓';
+      settingsBtn.disabled = true;
+    }
+  } else if (deferredInstallPrompt || isIOSDevice()) {
+    if (statusText) statusText.textContent = 'Install Dabba on your device for instant access & offline support.';
+    if (settingsBtn) {
+      settingsBtn.textContent = 'Install App';
+      settingsBtn.disabled = false;
+    }
+  }
+}
+
+function initPWA() {
+  // Register Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => console.log('PWA Service Worker registered:', reg.scope))
+        .catch((err) => console.warn('PWA Service Worker registration failed:', err));
+    });
+  }
+
+  // Catch Chrome/Android install prompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    updateInstallStatusUI();
+    showPWAInstallBanner();
+  });
+
+  // Handle app installed event
+  window.addEventListener('appinstalled', () => {
+    showToast('Dabba installed successfully!');
+    dismissPWAInstallBanner();
+    deferredInstallPrompt = null;
+    updateInstallStatusUI();
+  });
+
+  // Handle iOS Safari mobile visitor
+  if (isIOSDevice() && isMobileDevice() && !isStandaloneApp()) {
+    showPWAInstallBanner();
+  }
+
+  // Event Listeners for UI
+  const installBtn = $('pwaInstallBtn');
+  if (installBtn) installBtn.addEventListener('click', triggerPWAInstall);
+
+  const dismissBtn = $('pwaDismissBtn');
+  if (dismissBtn) dismissBtn.addEventListener('click', dismissPWAInstallBanner);
+
+  const closeIconBtn = $('pwaCloseIconBtn');
+  if (closeIconBtn) closeIconBtn.addEventListener('click', dismissPWAInstallBanner);
+
+  const settingsInstallBtn = $('settingsInstallBtn');
+  if (settingsInstallBtn) settingsInstallBtn.addEventListener('click', triggerPWAInstall);
+
+  const iosCloseBtn = $('iosModalCloseBtn');
+  if (iosCloseBtn) {
+    iosCloseBtn.addEventListener('click', () => {
+      const iosOverlay = $('iosInstallOverlay');
+      if (iosOverlay) iosOverlay.classList.add('hidden');
+    });
+  }
+
+  const iosOverlay = $('iosInstallOverlay');
+  if (iosOverlay) {
+    iosOverlay.addEventListener('click', (e) => {
+      if (e.target === iosOverlay) iosOverlay.classList.add('hidden');
+    });
+  }
+
+  updateInstallStatusUI();
+}
+
 // ---------- Init ----------
 async function main() {
+  initPWA();
   const config = await api('/api/config');
   supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
   setAuthMode('signin');
