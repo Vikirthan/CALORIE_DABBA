@@ -2040,14 +2040,16 @@ select:focus {
   gap: 8px;
 }
 
-.meal-group-chevron {
-  font-size: 0.75rem;
+.meal-group-chevron-svg {
+  width: 0.82rem;
+  height: 0.82rem;
   color: var(--text-faint);
-  transition: transform 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-block;
+  vertical-align: middle;
 }
 
-.meal-group-chevron.collapsed {
+.meal-group-chevron-svg.collapsed {
   transform: rotate(-90deg);
 }
 

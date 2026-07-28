@@ -753,10 +753,36 @@ function renderRangeBars(entries) {
 }
 
 const MEAL_GROUPS_META = [
-  { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
-  { key: 'lunch', label: 'Lunch', icon: '🍱' },
-  { key: 'snack', label: 'Snack', icon: '☕' },
-  { key: 'dinner', label: 'Dinner', icon: '🌙' }
+  { 
+    key: 'breakfast', 
+    label: 'Breakfast', 
+    icon: `<svg class="meal-group-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#f5c04e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 22H6M16 18a4 4 0 0 0-8 0M12 2v4M5.22 10.22l2.83 2.83M18.78 10.22l-2.83 2.83M2 18h4M18 18h4" />
+    </svg>` 
+  },
+  { 
+    key: 'lunch', 
+    label: 'Lunch', 
+    icon: `<svg class="meal-group-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#9bc296" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="4" />
+      <path d="M3 11h18M11 11v10M11 16h10" />
+    </svg>` 
+  },
+  { 
+    key: 'snack', 
+    label: 'Snack', 
+    icon: `<svg class="meal-group-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#ffd873" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3" />
+    </svg>` 
+  },
+  { 
+    key: 'dinner', 
+    label: 'Dinner', 
+    icon: `<svg class="meal-group-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#e08a5c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+      <path d="M19 3v4M21 5h-4" />
+    </svg>` 
+  }
 ];
 
 function getMealGroupKey(loggedAt) {
@@ -817,7 +843,9 @@ function renderEntries(entries) {
     card.innerHTML = `
       <div class="meal-group-header" data-group="${meta.key}">
         <div class="meal-group-title">
-          <span class="meal-group-chevron ${isExpanded ? '' : 'collapsed'}">▼</span>
+          <svg class="meal-group-chevron-svg ${isExpanded ? '' : 'collapsed'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
           <span class="meal-group-icon">${meta.icon}</span>
           <span class="meal-group-label">${meta.label}</span>
         </div>
@@ -866,7 +894,7 @@ function renderEntries(entries) {
       window.mealGroupsExpanded[meta.key] = nextState;
 
       const list = card.querySelector('.meal-group-list');
-      const chevron = card.querySelector('.meal-group-chevron');
+      const chevron = card.querySelector('.meal-group-chevron-svg');
 
       if (nextState) {
         list.classList.remove('collapsed');
