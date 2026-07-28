@@ -814,27 +814,57 @@ function resetDescribeTab() {
 // ---------- Shared confirm card ----------
 function renderConfirmCard(container, estimate, source, onEdit) {
   container.classList.remove('hidden');
+
+  let itemsHtml = '';
+  if (Array.isArray(estimate.items) && estimate.items.length > 0) {
+    itemsHtml = `
+      <div class="cf-items-wrap">
+        <h4 class="cf-items-title">Detected Items &amp; Cooking Breakdown</h4>
+        <div class="cf-items-list">
+          ${estimate.items
+            .map(
+              (item) => `
+            <div class="cf-item-card">
+              <div class="cf-item-header">
+                <span class="cf-item-name">${escapeHtml(item.name || 'Dish item')}</span>
+                <span class="cf-item-cal">${Math.round(item.calories || 0)} kcal</span>
+              </div>
+              <div class="cf-item-macros-row">
+                <span class="macro-tag protein">Protein: ${round1(item.protein || 0)}g</span>
+                <span class="macro-tag carbs">Carbs: ${round1(item.carbs || 0)}g</span>
+                <span class="macro-tag fat">Fat: ${round1(item.fat || 0)}g</span>
+              </div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      </div>
+    `;
+  }
+
   container.innerHTML = `
-    <label class="field-label">Name
+    ${itemsHtml}
+    <label class="field-label">Total Meal Name / Description
       <input class="cf-name" type="text" value="${escapeHtml(estimate.description || '')}" />
     </label>
     <div class="macro-inputs">
-      <label class="field-label">Calories
+      <label class="field-label">Total Calories
         <input class="cf-calories" type="number" value="${Math.round(estimate.calories || 0)}" />
       </label>
-      <label class="field-label">Protein
+      <label class="field-label">Total Protein (g)
         <input class="cf-protein" type="number" step="0.1" value="${estimate.protein || 0}" />
       </label>
     </div>
     <div class="macro-inputs">
-      <label class="field-label">Carbs
+      <label class="field-label">Total Carbs (g)
         <input class="cf-carbs" type="number" step="0.1" value="${estimate.carbs || 0}" />
       </label>
-      <label class="field-label">Fat
+      <label class="field-label">Total Fat (g)
         <input class="cf-fat" type="number" step="0.1" value="${estimate.fat || 0}" />
       </label>
     </div>
-    <span class="field-hint" style="margin-top: 4px; margin-bottom: 12px; display: block;">💡 Feel free to edit any numbers above if you have your exact package label values.</span>
+    <span class="field-hint" style="margin-top: 4px; margin-bottom: 12px; display: block;">💡 Detected cooking methods and ingredients are automatically scaled to total macros above.</span>
     <button class="primary-btn cf-add">Add to log</button>
     ${onEdit ? '<button type="button" class="secondary-btn cf-edit">← Re-enter details</button>' : ''}
   `;

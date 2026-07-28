@@ -110,12 +110,29 @@ STRICT NUTRITIONAL BENCHMARKS (Use these exact per-100g / per-unit standards for
 - Dal / Lentils (cooked): ~120 kcal, 7g protein, 20g carbs, 4g fat per 100g.
 - Oil / Ghee: ~45 kcal, 5g fat per 1 tsp (5ml). ~135 kcal, 15g fat per 1 tbsp (15ml).
 
-MATHEMATICAL SCALING RULE:
+MATHEMATICAL SCALING & ITEM DETECTION RULE:
 1. Always calculate total values linearly from the specified mass/volume. If the user specifies generic "milk" (without milk type specified), default to Whole Milk (~62 kcal, 3.2g protein, 3.5g fat per 100g -> 500g = ~310 kcal, 16g protein, 17.5g fat).
-2. If the user explicitly provides specific calories/macros or package label numbers in their text prompt (e.g. "500g milk 300 kcal 16g protein 16g fat"), HONOR THOSE EXACT NUMBERS.
+2. Detect each individual dish/ingredient and its specific cooking method (e.g. cooked in ghee/oil, fried, boiled, raw, grilled). Calculate item-by-item calories & macros reflecting the quantity and cooking oil/ghee added.
+3. Include an "items" array breaking down each detected item with its name, portion, cooking note, and individual calories/protein/carbs/fat.
 
 Respond with ONLY a single valid JSON object and nothing else — no markdown fences, no explanation outside JSON.
-JSON format: {"description": string, "calories": number, "protein": number, "carbs": number, "fat": number}`;
+JSON format:
+{
+  "description": string,
+  "calories": number,
+  "protein": number,
+  "carbs": number,
+  "fat": number,
+  "items": [
+    {
+      "name": string,
+      "calories": number,
+      "protein": number,
+      "carbs": number,
+      "fat": number
+    }
+  ]
+}`;
 
 const INSIGHTS_SYSTEM_PROMPT = `You are a supportive, concise nutrition coach for someone eating mostly Indian home-cooked food. Given a person's stats and calculated calorie/macro targets, write a short insight (3-4 sentences, plain prose, no markdown, no headers, no bullet points) explaining their daily calorie target relative to their maintenance level and practical tips for hitting their protein/carb/fat/fiber ranges with everyday Indian meals. Be encouraging and specific to the numbers given.`;
 

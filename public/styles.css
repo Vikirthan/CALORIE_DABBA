@@ -1325,15 +1325,70 @@ input:focus, textarea:focus, select:focus {
   color: var(--text-dim);
 }
 
-.version-dot {
-  color: var(--cardamom-bright);
-  font-size: 0.6rem;
+/* Itemized Cooking Breakdown List */
+.cf-items-wrap {
+  margin-bottom: 14px;
 }
 
-.version-pushed-text {
-  font-size: 0.75rem;
-  color: var(--text-faint);
-  font-family: var(--font-mono);
+.cf-items-title {
+  margin: 0 0 8px 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--turmeric-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
+
+.cf-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cf-item-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cf-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cf-item-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cf-item-cal {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--turmeric);
+}
+
+.cf-item-macros-row {
+  display: flex;
+  gap: 8px;
+}
+
+.macro-tag {
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
+}
+
+.macro-tag.protein { color: var(--cardamom-bright); }
+.macro-tag.carbs { color: var(--turmeric-bright); }
+.macro-tag.fat { color: var(--chili-bright); }
 
 
