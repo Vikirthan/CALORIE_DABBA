@@ -12,7 +12,14 @@ const GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || 'llama-3.3-70b-versatile'
 const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL || 'qwen/qwen3.6-27b';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODELS = [
+  process.env.GEMINI_MODEL,
+  'gemini-2.0-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-1.5-flash-latest',
+  'gemini-3.6-flash'
+].filter((m, i, self) => m && self.indexOf(m) === i);
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
@@ -166,6 +173,112 @@ async function callGroq(messages, model, { expectJson = true, _retried = false }
     throw err;
   }
   return expectJson ? extractJson(content) : content.trim();
+}
+
+async function callGemini(systemPrompt, userPrompt, imagePayload = null) {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not set on the server');
+  }
+
+  let lastError = null;
+  for (const model of GEMINI_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+      const parts = [{ text: userPrompt }];
+      if (imagePayload && imagePayload.imageBase64 && imagePayload.mediaType) {
+        parts.push({
+          inline_data: {
+            mime_type: imagePayload.mediaType,
+            data: imagePayload.imageBase64,
+          },
+        });
+      }
+
+      const payload = {
+        system_instruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          response_mime_type: 'application/json',
+          temperature: 0.2,
+        },
+      };
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const bodyText = await res.text().catch(() => '');
+        throw new Error(`Gemini API model ${model} HTTP ${res.status}: ${bodyText.slice(0, 150)}`);
+      }
+
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error(`Empty content response from Gemini model ${model}`);
+      }
+
+      return extractJson(text);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('All Gemini models failed');
+}
+
+async function estimateNutritionText(systemPrompt, userPrompt) {
+  if (GEMINI_API_KEY) {
+    try {
+      const result = await callGemini(systemPrompt, userPrompt);
+      console.log('[AI Provider] Successfully generated estimation via Gemini API');
+      return result;
+    } catch (err) {
+      console.warn(`[AI Provider Fallback] Gemini API unavailable (${err.message}). Falling back to Groq API...`);
+    }
+  }
+
+  return await callGroq(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    GROQ_TEXT_MODEL
+  );
+}
+
+async function estimateNutritionPhoto(systemPrompt, imageBase64, mediaType) {
+  if (GEMINI_API_KEY) {
+    try {
+      const result = await callGemini(systemPrompt, 'Estimate the nutrition for the meal in this photo.', {
+        imageBase64,
+        mediaType,
+      });
+      console.log('[AI Provider] Successfully generated photo estimation via Gemini Vision API');
+      return result;
+    } catch (err) {
+      console.warn(`[AI Provider Fallback] Gemini Vision API unavailable (${err.message}). Falling back to Groq Vision API...`);
+    }
+  }
+
+  return await callGroq(
+    [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Estimate the nutrition for the meal in this photo.' },
+          { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+        ],
+      },
+    ],
+    GROQ_VISION_MODEL
+  );
 }
 
 function fallbackInsights(targets) {
@@ -393,13 +506,7 @@ app.post('/api/estimate-text', async (req, res) => {
   const { description } = req.body;
   if (!description) return res.status(400).json({ error: 'description is required' });
   try {
-    const result = await callGroq(
-      [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: description },
-      ],
-      GROQ_TEXT_MODEL
-    );
+    const result = await estimateNutritionText(SYSTEM_PROMPT, description);
     res.json(result);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -412,19 +519,7 @@ app.post('/api/estimate-photo', async (req, res) => {
     return res.status(400).json({ error: 'imageBase64 and mediaType are required' });
   }
   try {
-    const result = await callGroq(
-      [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Estimate the nutrition for the meal in this photo.' },
-            { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
-          ],
-        },
-      ],
-      GROQ_VISION_MODEL
-    );
+    const result = await estimateNutritionPhoto(SYSTEM_PROMPT, imageBase64, mediaType);
     res.json(result);
   } catch (err) {
     if (/invalid image data/i.test(err.message)) {
