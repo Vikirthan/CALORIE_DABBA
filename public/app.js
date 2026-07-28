@@ -208,6 +208,14 @@ async function handleSession(session) {
     subscribeRealtime(session.user.id);
     await loadProfileAndTargets();
     await refresh();
+
+    // Auto-prompt first-time users who have not configured body stats & goals yet
+    if (!profile || !profile.weight_kg || !profile.height_cm || !profile.age) {
+      setTimeout(() => {
+        openProfileModal();
+        showToast('Welcome to Dabba! Please set up your body stats & daily goals.');
+      }, 600);
+    }
   } else {
     hideApp();
     unsubscribeRealtime();
@@ -826,7 +834,7 @@ async function loadProfileAndTargets() {
   goal = data?.daily_goal_calories != null ? num(data.daily_goal_calories) : 2000;
 }
 
-$('profileBtn').addEventListener('click', async () => {
+async function openProfileModal() {
   await loadProfileAndTargets();
   if (profile) {
     $('profileWeight').value = profile.weight_kg ?? '';
@@ -846,7 +854,18 @@ $('profileBtn').addEventListener('click', async () => {
     profileInsights.classList.add('hidden');
   }
   profileOverlay.classList.remove('hidden');
-});
+}
+
+$('profileBtn').addEventListener('click', openProfileModal);
+
+const settingsEditProfileBtn = $('settingsEditProfileBtn');
+if (settingsEditProfileBtn) {
+  settingsEditProfileBtn.addEventListener('click', () => {
+    $('settingsOverlay').classList.add('hidden');
+    openProfileModal();
+  });
+}
+
 profileOverlay.addEventListener('click', (e) => {
   if (e.target === profileOverlay) profileOverlay.classList.add('hidden');
 });
